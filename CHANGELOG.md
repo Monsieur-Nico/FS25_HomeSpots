@@ -6,6 +6,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.1.0.9] - 2026-09-28
+
 ### Added
 - "Send home" in the map menu of a selected vehicle or tool (next to Enter vehicle, Reset and Sell). It shows
   when the vehicle, or a tool attached to it, has a home spot and is away from it.
@@ -70,6 +72,7 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.8...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.9...HEAD
+[1.1.0.9]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.8...v1.1.0.9
 [1.1.0.8]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.7...v1.1.0.8
 [1.1.0.7]: https://github.com/Monsieur-Nico/FS25_HomeSpots/releases/tag/v1.1.0.7
