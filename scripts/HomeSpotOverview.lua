@@ -41,18 +41,6 @@ function HomeSpotOverview.getIsInUse(vehicle)
 end
 
 
----Returns the distance on the ground between a vehicle and its home spot
--- @param table vehicle vehicle
--- @param table components saved component positions
--- @return float distance in m
-function HomeSpotOverview.getDistance(vehicle, components)
-    local x, _, z = getWorldTranslation(vehicle.rootNode)
-    local home = components[1][1]
-
-    return MathUtil.vector2Length(x - home[1], z - home[3])
-end
-
-
 ---Returns one row per vehicle of the player's farm with a home spot: away ones first, then in use, then home, each by name
 -- @return table rows list of {vehicle, name, status, distance, tools}
 function HomeSpotOverview.getRows()
@@ -74,7 +62,7 @@ function HomeSpotOverview.getRows()
                 vehicle = vehicle,
                 name = vehicle:getFullName(),
                 status = status,
-                distance = HomeSpotOverview.getDistance(vehicle, components),
+                distance = HomeSpots.getDistanceToHome(vehicle, components),
                 tools = HomeSpotOverview.getToolNames(vehicle)
             })
         end

@@ -15,6 +15,15 @@ HomeSpotStore.MARKERS_AWAY = 1
 HomeSpotStore.MARKERS_ALWAYS = 2
 HomeSpotStore.MARKERS_OFF = 3
 
+-- Realism fee charged per km for each vehicle sent home
+HomeSpotStore.FEE_OFF = 1
+HomeSpotStore.FEE_LOW = 2
+HomeSpotStore.FEE_NORMAL = 3
+HomeSpotStore.FEE_HIGH = 4
+
+-- The settings, as named in the store and in HomeSpots.changeSettings
+HomeSpotStore.SETTING_NAMES = {"autoTidyHour", "markerMode", "feeLevel"}
+
 
 ---Parse three space separated numbers, e.g. "12.5 80.1 -3.2"
 -- @param string text text
@@ -54,6 +63,28 @@ function HomeSpotStore:reset()
     self:clearSpots()
     self.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
     self.markerMode = HomeSpotStore.MARKERS_AWAY
+    self.feeLevel = HomeSpotStore.FEE_OFF
+end
+
+
+---Returns a copy of the settings
+-- @return table settings autoTidyHour, markerMode, feeLevel
+function HomeSpotStore:getSettings()
+    local settings = {}
+    for _, name in ipairs(HomeSpotStore.SETTING_NAMES) do
+        settings[name] = self[name]
+    end
+
+    return settings
+end
+
+
+---Use new settings
+-- @param table settings autoTidyHour, markerMode, feeLevel
+function HomeSpotStore:setSettings(settings)
+    for _, name in ipairs(HomeSpotStore.SETTING_NAMES) do
+        self[name] = settings[name]
+    end
 end
 
 
@@ -197,6 +228,11 @@ function HomeSpotStore:loadFromDirectory(directory)
         self.markerMode = markerMode
     end
 
+    local feeLevel = getXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#fee")
+    if feeLevel ~= nil and feeLevel >= HomeSpotStore.FEE_OFF and feeLevel <= HomeSpotStore.FEE_HIGH then
+        self.feeLevel = feeLevel
+    end
+
     local i = 0
     while true do
         local key = string.format("%s.vehicle(%d)", HomeSpotStore.XML_ROOT, i)
@@ -247,6 +283,7 @@ function HomeSpotStore:saveToDirectory(directory, vehicleSystem)
 
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#autoTidyHour", self.autoTidyHour)
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#markers", self.markerMode)
+    setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#fee", self.feeLevel)
 
     local i = 0
     for uniqueId, components in pairs(self.spots) do

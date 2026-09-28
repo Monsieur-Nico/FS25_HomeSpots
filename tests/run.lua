@@ -292,7 +292,7 @@ end
 for _, hasTimeScale in ipairs({false, true}) do
     local caseName = hasTimeScale and "copying the time scale row" or "searching the layout"
 
-    test("settings section has the tidy-up hour and marker options, " .. caseName, function()
+    test("settings section has the tidy-up hour, marker and fee options, " .. caseName, function()
         HomeSpotSettings.injectedLayout = nil
 
         local layout = newElement("layout")
@@ -305,7 +305,7 @@ for _, hasTimeScale in ipairs({false, true}) do
 
         local frame = {generalSettingsLayout = layout, multiTimeScale = hasTimeScale and multiOption or nil}
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 6, "header and two rows added")
+        assertEquals(#layout.elements, 7, "header and three rows added")
 
         local option = HomeSpotSettings.OPTIONS[1].element
         assert(option ~= nil and option.kind == MultiTextOptionElement, "copied a multi choice row, not a toggle")
@@ -329,8 +329,22 @@ for _, hasTimeScale in ipairs({false, true}) do
         assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_OFF, "off")
         markers.onClickCallback(markers.target, HomeSpotStore.MARKERS_AWAY)
 
+        local fee = HomeSpotSettings.OPTIONS[3].element
+        assertEquals(layout.elements[7].elements[2].text, "homeSpots_fee")
+        assertEquals(table.concat(fee.texts, ", "), "homeSpots_off, Low $25/km, Normal $50/km, High $100/km")
+        assertEquals(fee.state, HomeSpotStore.FEE_OFF, "off by default")
+        fee.onClickCallback(fee.target, HomeSpotStore.FEE_HIGH)
+        assertEquals(HomeSpots.store.feeLevel, HomeSpotStore.FEE_HIGH, "high")
+        assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_AWAY, "other settings kept")
+
+        game.costMultiplier = 0.5
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 6, "not added twice")
+        assertEquals(fee.texts[3], "Normal $25/km", "prices follow the economic difficulty")
+        game.costMultiplier = 1
+        fee.onClickCallback(fee.target, HomeSpotStore.FEE_OFF)
+
+        HomeSpots.onSettingsFrameOpen(frame)
+        assertEquals(#layout.elements, 7, "not added twice")
     end)
 end
 
@@ -546,6 +560,76 @@ end)
 
 -- The game registers the on-foot keys without a context name, and the vehicle keys again whenever
 -- the vehicle refreshes its own (getting in, hitching or unhitching, being sent home)
+test("realism fee: off by default, nothing is charged", function()
+    game.place(trailer, 30, 0)
+    HomeSpots.store:set(trailer)
+    game.place(tractor, 1010, 0)
+    local balance = game.balances[1]
+    sendAllHome()
+    assertEquals(getX(tractor), 10, "moved home")
+    assertEquals(game.balances[1], balance, "free")
+    assert(not game.lastNotification():find("cost"), "no cost in the message")
+end)
+
+test("realism fee: each vehicle pays per km home, a tool hooked to it rides along free", function()
+    HomeSpots.changeSettings({feeLevel = HomeSpotStore.FEE_NORMAL})
+    game.place(tractor, 2010, 0)
+    game.place(plough, 2010, -6)
+    tractor.implements = {{object = plough}}
+    plough.attacher = tractor
+    game.place(trailer, 530, 0)
+    local balance = game.balances[1]
+
+    sendAllHome()
+    assertEquals(getX(tractor), 10, "tractor home")
+    assertEquals(getX(trailer), 30, "trailer home")
+    assertEquals(balance - game.balances[1], 125, "2 km for the tractor and 0.5 km for the trailer at 50 per km, the plough free")
+    assertEquals(game.lastNotification(), "sent 3. cost $125")
+end)
+
+test("realism fee: the price follows the economic difficulty and saves with the savegame", function()
+    game.costMultiplier = 0.4
+    game.place(trailer, 1030, 0)
+    local balance = game.balances[1]
+    sendAllHome()
+    assertEquals(balance - game.balances[1], 20, "1 km at 50 x 0.4")
+    game.costMultiplier = 1
+
+    HomeSpots.onSaveCareer(g_currentMission.missionInfo)
+    HomeSpots.store:reset()
+    HomeSpots.store:loadFromDirectory("/savegame1")
+    assertEquals(HomeSpots.store.feeLevel, HomeSpotStore.FEE_NORMAL, "fee level saved")
+end)
+
+test("realism fee: without the money nothing moves and the player is told the price", function()
+    game.place(trailer, 1030, 0)
+    local balance = game.balances[1]
+    game.balances[1] = 30
+    sendAllHome()
+    assertEquals(getX(trailer), 1030, "stays")
+    assertEquals(game.balances[1], 30, "nothing charged")
+    assertEquals(game.lastNotification(), "no money $50")
+
+    game.balances[1] = balance
+    sendAllHome()
+    assertEquals(getX(trailer), 30, "goes once the farm can pay")
+end)
+
+test("realism fee: the daily send-home charges even when the farm is short", function()
+    HomeSpots.store.autoTidyHour = 20
+    game.place(trailer, 1030, 0)
+    local balance = game.balances[1]
+    game.balances[1] = 10
+    game.fireHourChanged(20)
+    HomeSpots:update(16)
+    assertEquals(getX(trailer), 30, "sent home")
+    assertEquals(game.balances[1], -40, "charged all the same, like other running costs")
+
+    game.balances[1] = balance
+    HomeSpots.store.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
+    HomeSpots.changeSettings({feeLevel = HomeSpotStore.FEE_OFF})
+end)
+
 local function registerKeys(contextName)
     game.inputContext = contextName or "PLAYER"
     HomeSpots.registerGlobalActionEvents(nil, contextName)

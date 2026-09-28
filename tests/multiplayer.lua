@@ -15,7 +15,7 @@ return function(test, assertEquals, network)
     hostMod:onSetHomeInput()
     hostGame.currentVehicle = nil
     hostMod.store:set(trailer)
-    hostMod.changeSettings(20, HomeSpotStore.MARKERS_ALWAYS)
+    hostMod.changeSettings({autoTidyHour = 20, markerMode = HomeSpotStore.MARKERS_ALWAYS})
 
     local player = network.newMachine()
     local playerGame, playerMod = player.game, player.HomeSpots
@@ -150,7 +150,7 @@ return function(test, assertEquals, network)
 
     test("multiplayer: only the host or an admin can change the settings", function()
         local function newOptionElement()
-            return {setState = function() end, setDisabled = function(self, isDisabled) self.isDisabled = isDisabled end}
+            return {setTexts = function() end, setState = function() end, setDisabled = function(self, isDisabled) self.isDisabled = isDisabled end}
         end
 
         player.env.HomeSpotSettings.OPTIONS[1].element = newOptionElement()
@@ -161,21 +161,48 @@ return function(test, assertEquals, network)
         admin.env.HomeSpotSettings.refresh()
         assertEquals(admin.env.HomeSpotSettings.OPTIONS[1].element.isDisabled, false, "open for an admin")
 
-        playerMod.changeSettings(5, HomeSpotStore.MARKERS_OFF)
+        playerMod.changeSettings({autoTidyHour = 5, markerMode = HomeSpotStore.MARKERS_OFF})
         network.deliver()
         assertEquals(hostMod.store.autoTidyHour, 20, "host ignores a player")
         assertEquals(playerMod.store.autoTidyHour, 20, "player's page is put back")
         assertEquals(playerMod.store.markerMode, HomeSpotStore.MARKERS_ALWAYS, "player's marker setting is put back")
 
-        admin.HomeSpots.changeSettings(5, HomeSpotStore.MARKERS_AWAY)
+        admin.HomeSpots.changeSettings({autoTidyHour = 5, markerMode = HomeSpotStore.MARKERS_AWAY})
         network.deliver()
         assertEquals(hostMod.store.autoTidyHour, 5, "host takes an admin's change")
         assertEquals(playerMod.store.autoTidyHour, 5, "every player gets it")
         assertEquals(playerMod.store.markerMode, HomeSpotStore.MARKERS_AWAY, "marker setting too")
 
-        hostMod.changeSettings(20, HomeSpotStore.MARKERS_ALWAYS)
+        hostMod.changeSettings({autoTidyHour = 20, markerMode = HomeSpotStore.MARKERS_ALWAYS})
         network.deliver()
         assertEquals(admin.HomeSpots.store.autoTidyHour, 20, "host's change reaches everyone")
+    end)
+
+    test("multiplayer: the realism fee is paid by the player's farm on the host, and the player sees the price", function()
+        hostMod.changeSettings({feeLevel = HomeSpotStore.FEE_NORMAL})
+        network.deliver()
+        assertEquals(playerMod.store.feeLevel, HomeSpotStore.FEE_NORMAL, "player gets the fee setting")
+
+        local hostBalance, playerBalance = hostGame.balances[1], hostGame.balances[2]
+        hostGame.place(combine, 1060, 0)
+        playerMod:onSendAllHomeInput()
+        step()
+        assertEquals(getX(combine), 60, "combine home")
+        assertEquals(playerBalance - hostGame.balances[2], 50, "1 km at 50 from the player's farm")
+        assertEquals(hostGame.balances[1], hostBalance, "host's farm pays nothing")
+        assertEquals(playerGame.lastNotification(), "sent 1. cost $50", "player is told the price")
+
+        hostGame.balances[2] = 10
+        hostGame.place(combine, 1060, 0)
+        playerMod:onSendAllHomeInput()
+        step()
+        assertEquals(getX(combine), 1060, "stays without the money")
+        assertEquals(playerGame.lastNotification(), "no money $50", "player is told why")
+
+        hostGame.balances[2] = playerBalance
+        hostGame.place(combine, 60, 0)
+        hostMod.changeSettings({feeLevel = HomeSpotStore.FEE_OFF})
+        network.deliver()
     end)
 
     test("multiplayer: the daily send-home moves every farm's vehicles and tells everyone", function()

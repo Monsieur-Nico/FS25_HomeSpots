@@ -15,6 +15,7 @@ HomeSpots.REPORT_SAVED = 1
 HomeSpots.REPORT_CLEARED = 2
 HomeSpots.REPORT_SENT = 3
 HomeSpots.REPORT_NOTHING = 4
+HomeSpots.REPORT_NO_MONEY = 5
 
 -- A vehicle this close to its home spot (m, and heading in rad) counts as already home and is not moved
 HomeSpots.AT_HOME_DISTANCE = 1.0
@@ -424,7 +425,7 @@ function HomeSpots.onClientJoined(mission, connection)
         end
     end
 
-    connection:sendEvent(HomeSpotSettingsEvent.new(HomeSpots.store.autoTidyHour, HomeSpots.store.markerMode))
+    connection:sendEvent(HomeSpotSettingsEvent.new(HomeSpots.store:getSettings()))
     connection:sendEvent(HomeSpotSpotsEvent.new(entries, true))
 end
 
@@ -436,34 +437,35 @@ function HomeSpots.getCanChangeSettings()
 end
 
 
----Change the settings from the settings page: directly on the server, or by asking it
--- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
--- @param integer markerMode map marker mode
-function HomeSpots.changeSettings(autoTidyHour, markerMode)
+---Change settings from the settings page: directly on the server, or by asking it
+-- @param table changes the settings to change (see HomeSpotStore.SETTING_NAMES), the others keep their value
+function HomeSpots.changeSettings(changes)
+    local settings = HomeSpots.store:getSettings()
+    for name, value in pairs(changes) do
+        settings[name] = value
+    end
+
     if g_currentMission:getIsServer() then
-        HomeSpots.applySettings(autoTidyHour, markerMode)
+        HomeSpots.applySettings(settings)
     else
-        HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
-        g_client:getServerConnection():sendEvent(HomeSpotSettingsEvent.new(autoTidyHour, markerMode))
+        HomeSpots.onSettingsReceived(settings)
+        g_client:getServerConnection():sendEvent(HomeSpotSettingsEvent.new(settings))
     end
 end
 
 
 ---Server: use new settings and send them to every player
--- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
--- @param integer markerMode map marker mode
-function HomeSpots.applySettings(autoTidyHour, markerMode)
-    HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
-    HomeSpots.broadcast(HomeSpotSettingsEvent.new(autoTidyHour, markerMode))
+-- @param table settings all settings
+function HomeSpots.applySettings(settings)
+    HomeSpots.onSettingsReceived(settings)
+    HomeSpots.broadcast(HomeSpotSettingsEvent.new(settings))
 end
 
 
 ---Use settings (the server's, or this player's own change) and show them on the settings page
--- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
--- @param integer markerMode map marker mode
-function HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
-    HomeSpots.store.autoTidyHour = autoTidyHour
-    HomeSpots.store.markerMode = markerMode
+-- @param table settings all settings
+function HomeSpots.onSettingsReceived(settings)
+    HomeSpots.store:setSettings(settings)
     HomeSpotSettings.refresh()
 end
 
@@ -494,6 +496,18 @@ function HomeSpots.getHomePose(vehicle, components)
     local isAtHome = HomeSpotArea.getIsSamePose(homeArea, currentArea, HomeSpots.AT_HOME_DISTANCE, HomeSpots.AT_HOME_ANGLE)
 
     return isAtHome, homeArea, currentArea
+end
+
+
+---Returns the distance on the ground between a vehicle and its home spot
+-- @param table vehicle vehicle
+-- @param table components saved component positions
+-- @return float distance in m
+function HomeSpots.getDistanceToHome(vehicle, components)
+    local x, _, z = getWorldTranslation(vehicle.rootNode)
+    local home = components[1][1]
+
+    return MathUtil.vector2Length(x - home[1], z - home[3])
 end
 
 
@@ -554,6 +568,7 @@ end
 ---Server: send vehicles to their home spots.
 -- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
 -- Tools without a home spot are unhooked and left where they are.
+-- With the realism fee on, a player's own request goes ahead only if their farm can pay for it.
 -- @param table vehicles vehicles to send home, those without a home spot are skipped
 -- @param table options isAutomatic (daily send-home time), isTargeted (the player picked these vehicles, the report names them),
 --   farmId (only this farm's vehicles, nil for every farm), connection (player who asked, nil for the local player)
@@ -606,6 +621,18 @@ function HomeSpots.sendHome(vehicles, options)
     end
 
     local accepted, blocked = HomeSpots.resolveBlockedSpots(candidates, staticAreas)
+
+    HomeSpotFee.priceMoves(accepted, HomeSpots.store.feeLevel)
+    if not options.isAutomatic and options.farmId ~= nil then
+        local fee = HomeSpotFee.getFarmFees(accepted)[options.farmId] or 0
+
+        if not HomeSpotFee.getCanAfford(options.farmId, fee) then
+            local report = HomeSpots.newReport(HomeSpots.REPORT_NO_MONEY)
+            report.fees[options.farmId] = fee
+            HomeSpots.deliverReport(report, options.connection)
+            return
+        end
+    end
 
     for _, move in ipairs(accepted) do
         HomeSpots.detachFromCombination(move.vehicle)
@@ -705,16 +732,20 @@ function HomeSpots.processPendingMoves()
 
     HomeSpots.pendingMoves = nil
 
-    local moved = {}
+    local movedMoves = {}
     for _, move in ipairs(moves) do
         if HomeSpots.moveToHomeSpot(move.vehicle, move.components) then
-            table.insert(moved, move.vehicle)
+            table.insert(movedMoves, move)
         end
     end
 
+    local fees = HomeSpotFee.getFarmFees(movedMoves)
+    HomeSpotFee.charge(fees)
+
     local report = HomeSpots.pendingReport
     HomeSpots.pendingReport = nil
-    report.vehicles = moved
+    report.vehicles = HomeSpots.getMovedVehicles(movedMoves)
+    report.fees = fees
 
     HomeSpots.deliverReport(report, report.connection)
 end
@@ -722,9 +753,10 @@ end
 
 ---Create an empty report
 -- @param integer kind HomeSpots.REPORT_*
--- @return table report kind, vehicles (saved, removed or moved), atHome, blocked, numBusy, isAutomatic, isTargeted
+-- @return table report kind, vehicles (saved, removed or moved), atHome, blocked, numBusy, isAutomatic, isTargeted,
+--   fees (farm id to the realism fee paid, or asked for when the farm could not pay)
 function HomeSpots.newReport(kind)
-    return {kind = kind, vehicles = {}, atHome = {}, blocked = {}, numBusy = 0, isAutomatic = false, isTargeted = false}
+    return {kind = kind, vehicles = {}, atHome = {}, blocked = {}, numBusy = 0, isAutomatic = false, isTargeted = false, fees = {}}
 end
 
 
@@ -761,6 +793,12 @@ function HomeSpots.showReport(report)
         return
     end
 
+    local fee = report.fees[g_currentMission:getFarmId()]
+    if report.kind == HomeSpots.REPORT_NO_MONEY then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_noMoney", g_i18n:formatMoney(fee, 0, true, true)), FSBaseMission.INGAME_NOTIFICATION_INFO)
+        return
+    end
+
     local moved = report.vehicles
     local parts = {}
     if report.isTargeted then
@@ -784,6 +822,9 @@ function HomeSpots.showReport(report)
     end
     if #report.blocked > 0 then
         table.insert(parts, HomeSpots.getText("homeSpots_blocked", names(report.blocked)))
+    end
+    if fee ~= nil then
+        table.insert(parts, HomeSpots.getText("homeSpots_feePaid", g_i18n:formatMoney(fee, 0, true, true)))
     end
 
     local text = table.concat(parts, ". ")

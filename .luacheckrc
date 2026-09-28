@@ -7,6 +7,7 @@ unused_args = false
 globals = {
     "HomeSpots",
     "HomeSpotArea",
+    "HomeSpotFee",
     "HomeSpotNetwork",
     "HomeSpotOverview",
     "HomeSpotOverviewFrame",
@@ -33,6 +34,7 @@ read_globals = {
     "BinaryOptionElement",
     "Class",
     "CollisionFlag",
+    "EconomyManager",
     "Event",
     "FocusManager",
     "GuiUtils",
@@ -45,6 +47,7 @@ read_globals = {
     "MapHotspot",
     "MathUtil",
     "MessageType",
+    "MoneyType",
     "MultiTextOptionElement",
     "NetworkUtil",
     "Overlay",

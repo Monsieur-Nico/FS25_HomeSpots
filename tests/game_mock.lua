@@ -187,6 +187,11 @@ local texts = {
     homeSpots_removeSpotQuestion = "Remove %s?",
     homeSpots_sentHomeFor = "sent: %s",
     homeSpots_alreadyHomeFor = "home: %s",
+    homeSpots_feeLow = "Low %s/km",
+    homeSpots_feeNormal = "Normal %s/km",
+    homeSpots_feeHigh = "High %s/km",
+    homeSpots_feePaid = "cost %s",
+    homeSpots_noMoney = "no money %s",
 }
 
 g_i18n = {getText = function(_, name) return texts[name] or name end}
@@ -317,6 +322,15 @@ function GuiUtils.getUVs(uvs, ref)
 end
 FocusManager = {setFocus = function(_, element) game.focusedElement = element end}
 g_i18n.formatDistance = function(_, distance) return string.format("%d m", math.floor(distance + 0.5)) end
+g_i18n.formatMoney = function(_, money, precision, addCurrency, prefixCurrencySymbol)
+    assert(precision == 0 and addCurrency and prefixCurrencySymbol, "money shown like the game's prices")
+    return string.format("$%d", math.floor(money + 0.5))
+end
+
+-- Economy: worker wages and other running costs scale with the economic difficulty
+game.costMultiplier = 1
+EconomyManager = {getCostMultiplier = function() return game.costMultiplier end}
+MoneyType = {AI = "wages"}
 
 TabbedMenuFrameElement = {}
 function TabbedMenuFrameElement.new(_, mt) return setmetatable({menuButtonInfo = {}}, mt) end
@@ -543,12 +557,20 @@ g_currentMission = {
     },
     addIngameNotification = function(_, notificationType, text) table.insert(game.notifications, {notificationType, text}) end,
     addMapHotspot = function(_, hotspot) game.hotspotsOnMap[hotspot] = true end,
+    addMoney = function(_, amount, farmId, moneyType, addChange)
+        assert(moneyType == MoneyType.AI and addChange, "booked as wages, with the change shown")
+        game.balances[farmId] = game.balances[farmId] + amount
+    end,
     removeMapHotspot = function(_, hotspot) game.hotspotsOnMap[hotspot] = nil end,
 }
 
--- Farms of the players, by user id
+-- Farms of the players, by user id, and each farm's money
 game.userFarms = {}
+game.balances = {[1] = 100000, [2] = 100000}
 g_farmManager = {
+    getFarmById = function(_, farmId)
+        return {farmId = farmId, getBalance = function() return game.balances[farmId] end}
+    end,
     getFarmByUserId = function(_, userId)
         local farmId = game.userFarms[userId]
         return farmId ~= nil and {farmId = farmId} or nil

@@ -25,6 +25,7 @@ spot. You can also let the farm tidy itself up at a set time every day.
   and how far from its spot, with a count of each above the shop picture of the selected one and the tools
   that come along with it. Send it home, show it on the map, remove its spot, or send everything home.
 - **Daily tidy-up.** Pick an hour in the settings menu, for example 20:00, and everything goes home by itself every day.
+- **Realism fee.** Optionally pay for each vehicle sent home, per km of the way back, as if a worker had driven it.
 - **Saved with your savegame.** Spots and the tidy-up hour are stored in `homeSpots.xml` in the savegame folder.
 
 ## Installation
@@ -57,8 +58,12 @@ Open **Settings** from the pause menu and scroll to the bottom of the General pa
 
 - **Send vehicles home at**: Off, or any hour from 00:00 to 23:00. A message warns you one in-game hour before.
 - **Home spot markers**: Away only (default), Always (green when home, orange when away) or Off.
+- **Realism fee**: Off (default), Low, Normal or High: 25, 50 or 100 per km of straight-line distance home,
+  scaled by the economic difficulty like worker wages and booked as wages. Tools hooked to a vehicle that goes home
+  ride along for free. If your farm can't pay, the vehicle stays put and you're told the price; the daily tidy-up
+  always goes ahead. Normal is about what a base-game worker earns driving the same way home.
 
-Both are saved with the savegame.
+All three are saved with the savegame.
 
 ## Compatibility
 

@@ -1,6 +1,13 @@
----Adds the Home Spots section to the in-game settings page: the daily send-home time and how map markers show
+---Adds the Home Spots section to the in-game settings page: the daily send-home time, how map markers show and the realism fee
 HomeSpotSettings = {}
 HomeSpotSettings.injectedLayout = nil
+
+-- Texts of the realism fee levels, each showing its price per km
+HomeSpotSettings.FEE_TEXT_NAMES = {
+    [HomeSpotStore.FEE_LOW] = "homeSpots_feeLow",
+    [HomeSpotStore.FEE_NORMAL] = "homeSpots_feeNormal",
+    [HomeSpotStore.FEE_HIGH] = "homeSpots_feeHigh",
+}
 
 
 ---Returns an hour of the day as a clock time, e.g. "20:00"
@@ -51,7 +58,7 @@ HomeSpotSettings.OPTIONS = {
             return HomeSpotSettings.getStateFromHour(HomeSpots.store.autoTidyHour)
         end,
         setState = function(state)
-            HomeSpots.changeSettings(HomeSpotSettings.getHourFromState(state), HomeSpots.store.markerMode)
+            HomeSpots.changeSettings({autoTidyHour = HomeSpotSettings.getHourFromState(state)})
         end
     },
     {
@@ -68,7 +75,25 @@ HomeSpotSettings.OPTIONS = {
             return HomeSpots.store.markerMode
         end,
         setState = function(state)
-            HomeSpots.changeSettings(HomeSpots.store.autoTidyHour, state)
+            HomeSpots.changeSettings({markerMode = state})
+        end
+    },
+    {
+        textName = "homeSpots_fee",
+        tooltipName = "homeSpots_fee_tooltip",
+        getTexts = function()
+            local texts = {g_i18n:getText("homeSpots_off")}
+            for _, level in ipairs({HomeSpotStore.FEE_LOW, HomeSpotStore.FEE_NORMAL, HomeSpotStore.FEE_HIGH}) do
+                local price = g_i18n:formatMoney(HomeSpotFee.getPricePerKm(level), 0, true, true)
+                table.insert(texts, HomeSpots.getText(HomeSpotSettings.FEE_TEXT_NAMES[level], price))
+            end
+            return texts
+        end,
+        getState = function()
+            return HomeSpots.store.feeLevel
+        end,
+        setState = function(state)
+            HomeSpots.changeSettings({feeLevel = state})
         end
     }
 }
@@ -196,11 +221,13 @@ end
 
 
 ---Show the current value of every option. In multiplayer only the host or a server admin can change them.
+-- The texts are set again too, as the fee prices follow the economy difficulty.
 function HomeSpotSettings.refresh()
     local canChange = HomeSpots.getCanChangeSettings()
 
     for _, option in ipairs(HomeSpotSettings.OPTIONS) do
         if option.element ~= nil then
+            option.element:setTexts(option.getTexts())
             option.element:setState(option.getState(), false)
             option.element:setDisabled(not canChange)
         end

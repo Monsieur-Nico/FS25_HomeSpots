@@ -30,6 +30,37 @@ function HomeSpotNetwork.readVehicles(streamId)
 end
 
 
+---Write realism fees per farm
+-- @param integer streamId stream id
+-- @param table fees farm id to amount
+function HomeSpotNetwork.writeFees(streamId, fees)
+    local farmIds = {}
+    for farmId in pairs(fees) do
+        table.insert(farmIds, farmId)
+    end
+
+    streamWriteUInt8(streamId, #farmIds)
+    for _, farmId in ipairs(farmIds) do
+        streamWriteUInt8(streamId, farmId)
+        streamWriteFloat32(streamId, fees[farmId])
+    end
+end
+
+
+---Read fees written by writeFees
+-- @param integer streamId stream id
+-- @return table fees farm id to amount
+function HomeSpotNetwork.readFees(streamId)
+    local fees = {}
+    for _ = 1, streamReadUInt8(streamId) do
+        local farmId = streamReadUInt8(streamId)
+        fees[farmId] = streamReadFloat32(streamId)
+    end
+
+    return fees
+end
+
+
 ---Write the component positions of a home spot, or none for a removed spot
 -- @param integer streamId stream id
 -- @param table components component positions, or nil
@@ -163,13 +194,11 @@ end
 
 
 ---Create an event
--- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
--- @param integer markerMode map marker mode
+-- @param table settings all settings, see HomeSpotStore:getSettings
 -- @return table self
-function HomeSpotSettingsEvent.new(autoTidyHour, markerMode)
+function HomeSpotSettingsEvent.new(settings)
     local self = HomeSpotSettingsEvent.emptyNew()
-    self.autoTidyHour = autoTidyHour
-    self.markerMode = markerMode
+    self.settings = settings
 
     return self
 end
@@ -179,8 +208,9 @@ end
 -- @param integer streamId stream id
 -- @param table connection connection
 function HomeSpotSettingsEvent:writeStream(streamId, connection)
-    streamWriteInt8(streamId, self.autoTidyHour)
-    streamWriteUInt8(streamId, self.markerMode)
+    streamWriteInt8(streamId, self.settings.autoTidyHour)
+    streamWriteUInt8(streamId, self.settings.markerMode)
+    streamWriteUInt8(streamId, self.settings.feeLevel)
 end
 
 
@@ -188,8 +218,11 @@ end
 -- @param integer streamId stream id
 -- @param table connection connection
 function HomeSpotSettingsEvent:readStream(streamId, connection)
-    self.autoTidyHour = streamReadInt8(streamId)
-    self.markerMode = streamReadUInt8(streamId)
+    local settings = {}
+    settings.autoTidyHour = streamReadInt8(streamId)
+    settings.markerMode = streamReadUInt8(streamId)
+    settings.feeLevel = streamReadUInt8(streamId)
+    self.settings = settings
 
     self:run(connection)
 end
@@ -199,11 +232,11 @@ end
 -- @param table connection connection
 function HomeSpotSettingsEvent:run(connection)
     if connection:getIsServer() then
-        HomeSpots.onSettingsReceived(self.autoTidyHour, self.markerMode)
+        HomeSpots.onSettingsReceived(self.settings)
     elseif HomeSpotNetwork.getIsAdmin(connection) then
-        HomeSpots.applySettings(self.autoTidyHour, self.markerMode)
+        HomeSpots.applySettings(self.settings)
     else
-        connection:sendEvent(HomeSpotSettingsEvent.new(HomeSpots.store.autoTidyHour, HomeSpots.store.markerMode))
+        connection:sendEvent(HomeSpotSettingsEvent.new(HomeSpots.store:getSettings()))
     end
 end
 
@@ -304,6 +337,7 @@ function HomeSpotReportEvent:writeStream(streamId, connection)
     HomeSpotNetwork.writeVehicles(streamId, report.vehicles)
     HomeSpotNetwork.writeVehicles(streamId, report.atHome)
     HomeSpotNetwork.writeVehicles(streamId, report.blocked)
+    HomeSpotNetwork.writeFees(streamId, report.fees)
 end
 
 
@@ -318,6 +352,7 @@ function HomeSpotReportEvent:readStream(streamId, connection)
     report.vehicles = HomeSpotNetwork.readVehicles(streamId)
     report.atHome = HomeSpotNetwork.readVehicles(streamId)
     report.blocked = HomeSpotNetwork.readVehicles(streamId)
+    report.fees = HomeSpotNetwork.readFees(streamId)
     self.report = report
 
     self:run(connection)
