@@ -3,7 +3,7 @@
 local machine = {}
 
 -- Loaded in the order modDesc.xml lists them
-machine.SCRIPTS = {"HomeSpotArea", "HomeSpotStore", "HomeSpotHotspot", "HomeSpotSettings", "HomeSpots", "HomeSpotEvents", "HomeSpotMapMenu"}
+machine.SCRIPTS = {"HomeSpotArea", "HomeSpotStore", "HomeSpotHotspot", "HomeSpotSettings", "HomeSpots", "HomeSpotEvents", "HomeSpotMapMenu", "HomeSpotOverview"}
 
 
 ---Run a Lua file with its own globals

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.2.0.0</version>
+    <version>1.3.0.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -15,6 +15,7 @@ How to use:
 - Press Alt + H, on foot or in a vehicle, to send every vehicle and tool of your farm to its home spot.
 - Press Alt + U to send only the vehicle you sit in, or the tool you look at, to its home spot. Sitting in it, you go along. On the map, select a vehicle or tool and pick "Send home".
 - Press Alt + K to remove the home spot of what you sit in or look at.
+- The Home Spots page of the menu lists every vehicle and tool with a spot: home, away or in use, and how far from its spot, with a picture of the selected one. Send it home, or everything.
 - A house marker on the map shows each spot whose vehicle is away. In the settings you can show every spot instead (green when home, orange when away) or none.
 - In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
 
@@ -22,9 +23,8 @@ Vehicles driven by you, another player or a worker are left alone. If something 
 
 Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
 
-Changelog 1.2.0.0:
-- New: multiplayer support.
-- In multiplayer, only the host or a server admin can change the Home Spots settings.]]></en>
+Changelog 1.3.0.0:
+- New: Home Spots page in the menu, listing every vehicle and tool with a spot, whether it is home or away and how far off, a picture of the selected one, with Send home and Send all home.]]></en>
         <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
 
 So geht's:
@@ -33,6 +33,7 @@ So geht's:
 - Alt + H (zu Fuß oder im Fahrzeug) schickt alle Fahrzeuge und Geräte deines Hofs an ihren Stellplatz.
 - Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz. Sitzt du darin, fährst du mit. Auf der Karte: Fahrzeug oder Gerät auswählen und "Zum Stellplatz" wählen.
 - Alt + K entfernt den Stellplatz dessen, worin du sitzt oder was du anschaust.
+- Die Seite "Stellplätze" im Menü listet alle Fahrzeuge und Geräte mit Stellplatz: daheim, unterwegs oder in Benutzung, und wie weit vom Platz entfernt, mit einem Bild des ausgewählten. Schicke es oder alle nach Hause.
 - Ein Haus-Symbol auf der Karte zeigt jeden Platz, dessen Fahrzeug unterwegs ist. In den Einstellungen kannst du stattdessen alle Plätze zeigen (grün daheim, orange unterwegs) oder keine.
 - Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
 
@@ -40,9 +41,8 @@ Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben st
 
 Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
 
-Changelog 1.2.0.0:
-- Neu: Mehrspieler-Unterstützung.
-- Im Mehrspieler kann nur der Host oder ein Server-Admin die Stellplatz-Einstellungen ändern.]]></de>
+Changelog 1.3.0.0:
+- Neu: Seite "Stellplätze" im Menü mit allen Fahrzeugen und Geräten mit Stellplatz, ob daheim oder unterwegs und wie weit entfernt, einem Bild des ausgewählten, mit "Zum Stellplatz" und "Alle Fahrzeuge zum Stellplatz".]]></de>
         <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
 
 Utilisation :
@@ -51,6 +51,7 @@ Utilisation :
 - Appuyez sur Alt + H, à pied ou en véhicule, pour renvoyer tous les véhicules et outils de votre ferme à leur place.
 - Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place. Si vous êtes dedans, vous suivez. Sur la carte, sélectionnez un véhicule ou un outil et choisissez « Renvoyer à sa place ».
 - Alt + K efface la place de ce que vous conduisez ou regardez.
+- La page « Places de rangement » du menu liste chaque véhicule et outil ayant une place : présent, absent ou en service, et à quelle distance de sa place, avec une image de celui sélectionné. Renvoyez-le, ou tout.
 - Une petite maison sur la carte montre chaque place dont le véhicule est absent. Dans les paramètres, vous pouvez afficher toutes les places (vert si présent, orange si absent) ou aucune.
 - Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
 
@@ -58,9 +59,8 @@ Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. 
 
 Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
 
-Changelog 1.2.0.0 :
-- Nouveau : prise en charge du multijoueur.
-- En multijoueur, seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.]]></fr>
+Changelog 1.3.0.0 :
+- Nouveau : page « Places de rangement » dans le menu, avec chaque véhicule et outil ayant une place, présent ou absent et à quelle distance, une image de celui sélectionné, avec « Renvoyer à sa place » et « Renvoyer tous les véhicules à leur place ».]]></fr>
     </description>
     <iconFilename>icon_homeSpots.dds</iconFilename>
     <multiplayer supported="true" />
@@ -73,6 +73,7 @@ Changelog 1.2.0.0 :
         <sourceFile filename="scripts/HomeSpots.lua" />
         <sourceFile filename="scripts/HomeSpotEvents.lua" />
         <sourceFile filename="scripts/HomeSpotMapMenu.lua" />
+        <sourceFile filename="scripts/HomeSpotOverview.lua" />
     </extraSourceFiles>
 
     <actions>
@@ -247,6 +248,46 @@ Changelog 1.2.0.0 :
             <en>Off</en>
             <de>Aus</de>
             <fr>Désactivé</fr>
+        </text>
+        <text name="ui_homeSpotsOverview">
+            <en>Home Spots</en>
+            <de>Stellplätze</de>
+            <fr>Places de rangement</fr>
+        </text>
+        <text name="homeSpots_columnVehicle">
+            <en>Vehicle</en>
+            <de>Fahrzeug</de>
+            <fr>Véhicule</fr>
+        </text>
+        <text name="homeSpots_columnStatus">
+            <en>Status</en>
+            <de>Status</de>
+            <fr>État</fr>
+        </text>
+        <text name="homeSpots_columnDistance">
+            <en>Distance from spot</en>
+            <de>Entfernung zum Stellplatz</de>
+            <fr>Distance de sa place</fr>
+        </text>
+        <text name="homeSpots_statusHome">
+            <en>Home</en>
+            <de>Daheim</de>
+            <fr>À sa place</fr>
+        </text>
+        <text name="homeSpots_statusAway">
+            <en>Away</en>
+            <de>Unterwegs</de>
+            <fr>Absent</fr>
+        </text>
+        <text name="homeSpots_statusInUse">
+            <en>In use</en>
+            <de>In Benutzung</de>
+            <fr>En service</fr>
+        </text>
+        <text name="homeSpots_overviewEmpty">
+            <en>No home spots yet. Park a vehicle where it belongs and press Alt + J.</en>
+            <de>Noch keine Stellplätze. Stell ein Fahrzeug an seinen Platz und drücke Alt + J.</de>
+            <fr>Aucune place pour l'instant. Garez un véhicule à sa place et appuyez sur Alt + J.</fr>
         </text>
     </l10n>
 </modDesc>

@@ -41,7 +41,7 @@ jobs:
       - name: Lint, validate and test
         run: |
           luacheck scripts tests
-          xmllint --noout modDesc.xml
+          xmllint --noout modDesc.xml gui/*.xml
           lua5.1 tests/run.lua
 
       - name: Build mod zip

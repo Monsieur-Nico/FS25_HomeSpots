@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!-- Home Spots page of the in-game menu: one row per vehicle or tool with a home spot -->
+<GUI name="homeSpotsOverview">
+    <GuiElement profile="fs25_menuContainer">
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" id="homeSpotsHeaderIcon" />
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" id="homeSpotsHeaderText" />
+        </GuiElement>
+
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer">
+            <GuiElement profile="fs25_statisticsHeaderBox">
+                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnVehicle" position="16px 0px" />
+                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnStatus" position="440px 0px" />
+                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnDistance" position="670px 0px" />
+                <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp" />
+            </GuiElement>
+
+            <SmoothList profile="homeSpots_list" id="homeSpotsList" focusChangeTop="nil" focusChangeBottom="nil" selectedWithoutFocus="true">
+                <ListItem profile="homeSpots_listItem">
+                    <Text profile="homeSpots_listItemText" name="name" position="0px 0px" width="420px" />
+                    <Text profile="homeSpots_listItemText" name="status" position="424px 0px" width="220px" />
+                    <Text profile="homeSpots_listItemText" name="distance" position="654px 0px" width="200px" />
+                </ListItem>
+            </SmoothList>
+
+            <ThreePartBitmap profile="homeSpots_listSliderBox">
+                <Slider profile="fs25_listSlider" dataElementId="homeSpotsList" />
+            </ThreePartBitmap>
+
+            <Text profile="fs25_aiContainerEmptyText" id="homeSpotsEmptyText" position="0px -120px" />
+
+            <!-- Shop picture of the selected vehicle or tool -->
+            <GuiElement profile="homeSpots_preview" id="homeSpotsPreview">
+                <Bitmap profile="homeSpots_previewBackground" />
+                <Bitmap profile="homeSpots_previewImage" id="homeSpotsPreviewImage" />
+                <Text profile="homeSpots_previewName" id="homeSpotsPreviewName" />
+                <Text profile="homeSpots_previewText" id="homeSpotsPreviewStatus" position="0px -470px" />
+                <Text profile="homeSpots_previewText" id="homeSpotsPreviewDistance" position="0px -506px" />
+            </GuiElement>
+        </GuiElement>
+    </GuiElement>
+
+    <GUIProfiles>
+        <Profile name="homeSpots_list" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+            <position value="0px -56px" />
+            <absoluteSizeOffset value="460px 56px" />
+        </Profile>
+        <Profile name="homeSpots_listItem" extends="baseReference" with="anchorTopStretchingX alternating">
+            <height value="48px" />
+            <imageColor value="$preset_fs25_colorGrey" />
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight" />
+            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50" />
+        </Profile>
+        <Profile name="homeSpots_listItemText" extends="fs25_textDarkHighlight" with="anchorStretchingYLeft">
+            <textBold value="true" />
+            <textOffset value="16px 0px" />
+            <textSize value="20px" />
+            <textMaxNumLines value="1" />
+        </Profile>
+        <Profile name="homeSpots_listSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
+            <position value="-420px -56px" />
+            <absoluteSizeOffset value="0px 56px" />
+        </Profile>
+        <Profile name="homeSpots_preview" extends="emptyPanel" with="anchorTopRight">
+            <position value="0px -56px" />
+            <size value="400px 550px" />
+        </Profile>
+        <Profile name="homeSpots_previewBackground" extends="baseReference" with="anchorStretchingYStretchingX">
+            <imageColor value="$preset_fs25_colorGreyDark_50" />
+        </Profile>
+        <Profile name="homeSpots_previewImage" extends="baseReference" with="anchorTopCenter">
+            <position value="0px -20px" />
+            <size value="360px 360px" />
+            <imageColor value="1 1 1 1" />
+        </Profile>
+        <Profile name="homeSpots_previewName" extends="fs25_textDefault" with="anchorTopStretchingX">
+            <position value="0px -400px" />
+            <height value="60px" />
+            <textBold value="true" />
+            <textSize value="22px" />
+            <textAlignment value="center" />
+            <textMaxNumLines value="2" />
+            <textOffset value="0px 0px" />
+        </Profile>
+        <Profile name="homeSpots_previewText" extends="fs25_textDefault" with="anchorTopStretchingX">
+            <height value="30px" />
+            <textSize value="20px" />
+            <textAlignment value="center" />
+            <textMaxNumLines value="1" />
+        </Profile>
+    </GUIProfiles>
+</GUI>

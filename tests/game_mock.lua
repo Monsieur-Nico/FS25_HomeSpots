@@ -237,7 +237,10 @@ Utils = {
 g_currentModDirectory = "/mods/FS25_HomeSpots/"
 g_currentModName = "FS25_HomeSpots"
 GS_PRIO_NORMAL = 2
-InputAction = {HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D"}
+InputAction = {
+    HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D",
+    MENU_BACK = "MENU_BACK", MENU_ACCEPT = "MENU_ACCEPT", MENU_EXTRA_1 = "MENU_EXTRA_1",
+}
 MessageType = {HOUR_CHANGED = "hour"}
 
 function addModEventListener() end
@@ -299,6 +302,121 @@ g_inputBinding = {
     setActionEventActive = function(_, id, active) game.actionEvents[id].active = active end,
 }
 
+-- Menus: the in-game menu with its pages, and a GUI loader that builds a page from its real XML file,
+-- so a page only finds the elements its XML actually defines
+MathUtil = {vector2Length = function(x, z) return math.sqrt(x * x + z * z) end}
+-- Same corner order as the game's GuiUtils.getUVs
+GuiUtils = {}
+function GuiUtils.getUVs(uvs, ref)
+    local x, y, width, height = uvs[1] / ref[1], uvs[2] / ref[2], uvs[3] / ref[1], uvs[4] / ref[2]
+    return {x, 1 - y - height, x, 1 - y, x + width, 1 - y - height, x + width, 1 - y}
+end
+FocusManager = {setFocus = function(_, element) game.focusedElement = element end}
+g_i18n.formatDistance = function(_, distance) return string.format("%d m", math.floor(distance + 0.5)) end
+
+TabbedMenuFrameElement = {}
+function TabbedMenuFrameElement.new(_, mt) return setmetatable({menuButtonInfo = {}}, mt) end
+function TabbedMenuFrameElement:onGuiSetupFinished() end
+function TabbedMenuFrameElement:initialize() end
+function TabbedMenuFrameElement:onFrameOpen() end
+function TabbedMenuFrameElement:update() end
+function TabbedMenuFrameElement:setMenuButtonInfo(info) self.menuButtonInfo = info end
+function TabbedMenuFrameElement:setMenuButtonInfoDirty() self.menuButtonsDirty = true end
+function TabbedMenuFrameElement:getMenuButtonInfo() return self.menuButtonInfo end
+
+local function newGuiElement(kind)
+    local element = {kind = kind, isVisible = true}
+    function element:setText(text) self.text = text end
+    function element:setTextColor(r, g, b, a) self.textColor = {r, g, b, a} end
+    function element:setVisible(isVisible) self.isVisible = isVisible end
+    function element:setImageFilename(filename) self.imageFilename = filename end
+    function element:setImageUVs(_, ...) self.imageUVs = {...} end
+    return element
+end
+
+-- A list asks its data source for the rows and fills one cell per row, like the game's SmoothList
+local function newSmoothList(cellNames)
+    local list = newGuiElement("SmoothList")
+    list.selectedIndex = 1
+    list.cells = {}
+
+    function list:setDataSource(dataSource) self.dataSource = dataSource end
+    function list:setDelegate(delegate) self.delegate = delegate end
+    function list:getSelectedIndexInSection() return self.selectedIndex end
+
+    function list:reloadData()
+        self.cells = {}
+        local numItems = self.dataSource:getNumberOfItemsInSection(self, 1)
+        for index = 1, numItems do
+            local attributes = {}
+            for _, name in ipairs(cellNames) do
+                attributes[name] = newGuiElement("Text")
+            end
+            local cell = {getAttribute = function(_, name) return assert(attributes[name], "no cell element " .. name) end}
+            self.dataSource:populateCellForItemInSection(self, 1, index, cell)
+            self.cells[index] = attributes
+        end
+        self.selectedIndex = math.max(1, math.min(self.selectedIndex, numItems))
+    end
+
+    function list:setSelectedIndex(index)
+        self.selectedIndex = index
+        self.delegate:onListSelectionChanged(self, 1, index)
+    end
+
+    return list
+end
+
+InGameMenu = {}
+g_gui = {screenControllers = {}}
+function g_gui:loadGui(filename, name, controller, isFrame)
+    assert(isFrame, "a menu page is loaded as a frame")
+    local file = assert(io.open(filename:gsub("^" .. g_currentModDirectory, ""), "r"), "missing " .. filename)
+    local xml = file:read("*a")
+    file:close()
+
+    local cellNames = {}
+    for tag, attributes in xml:gmatch("<(%a+)([^>]*)>") do
+        local cellName = attributes:match('name="([^"]+)"')
+        if tag == "Text" and cellName ~= nil then
+            table.insert(cellNames, cellName)
+        end
+    end
+    for tag, attributes in xml:gmatch("<(%a+)([^>]*)>") do
+        local id = attributes:match('id="([^"]+)"')
+        if id ~= nil then
+            controller[id] = tag == "SmoothList" and newSmoothList(cellNames) or newGuiElement(tag)
+        end
+    end
+
+    controller.name = name
+    controller:onGuiSetupFinished()
+end
+
+-- The game's in-game menu with a few of its own pages
+function game.newInGameMenu()
+    local menu = {pageFrames = {}, tabs = {}, pagingElement = {elements = {}, pages = {}}}
+    for _, pageName in ipairs({"pageMapOverview", "pageSettings", "pageHelpLine"}) do
+        local page = {name = pageName}
+        menu[pageName] = page
+        table.insert(menu.pageFrames, page)
+        table.insert(menu.pagingElement.elements, page)
+        table.insert(menu.pagingElement.pages, {element = page})
+    end
+
+    function menu.pagingElement:addElement(element)
+        table.insert(self.elements, element)
+        table.insert(self.pages, {element = element})
+    end
+    function menu.pagingElement:updateAbsolutePosition() end
+    function menu.pagingElement:updatePageMapping() end
+    function menu:registerPage(page) table.insert(self.pageFrames, page) end
+    function menu:addPageTab(page, iconFilename, uvs) self.tabs[page] = {iconFilename = iconFilename, uvs = uvs} end
+    function menu:rebuildTabList() self.numTabRebuilds = (self.numTabRebuilds or 0) + 1 end
+
+    return menu
+end
+
 -- Vehicles
 game.vehicles = {}
 
@@ -316,6 +434,7 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
 
     function vehicle:getUniqueId() return self.uniqueId end
     function vehicle:getFullName() return self.name end
+    function vehicle:getImageFilename() return "store/" .. self.name .. ".dds" end
     function vehicle:getOwnerFarmId() return self.farmId end
     function vehicle:getRootVehicle() return self.attacher ~= nil and self.attacher:getRootVehicle() or self end
     function vehicle:getAttacherVehicle() return self.attacher end

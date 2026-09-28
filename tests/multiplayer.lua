@@ -217,4 +217,24 @@ return function(test, assertEquals, network)
         hostMod.onSaveCareer({savegameDirectory = "/mp"})
         assertEquals(hostGame.files["/mp/homeSpots.xml"]["homeSpots.vehicle(0)#uniqueId"] ~= nil, true, "saved on the host")
     end)
+
+    test("multiplayer: the Home Spots page on a player's machine lists their farm and asks the host", function()
+        local menu = admin.game.newInGameMenu()
+        admin.env.g_gui.screenControllers[admin.env.InGameMenu] = menu
+        admin.env.HomeSpotOverview:update(16)
+        local page = menu[admin.env.HomeSpotOverview.PAGE_NAME]
+
+        hostGame.place(tractor, 400, 0, 0)
+        network.syncPositions(host, admin)
+        page:onFrameOpen()
+
+        local cells = page.homeSpotsList.cells
+        assertEquals(#cells, 2, "tractor and trailer, not the other farm's combine")
+        assertEquals(cells[1].name.text .. " " .. cells[1].status.text .. " " .. cells[1].distance.text, "Fendt homeSpots_statusAway 390 m")
+
+        page.sendButtonInfo.callback()
+        step()
+        assertEquals(getX(tractor), 10, "host moved the tractor")
+        assertEquals(admin.game.lastNotification(), "sent: Fendt", "player is told")
+    end)
 end

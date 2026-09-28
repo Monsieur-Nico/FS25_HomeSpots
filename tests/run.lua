@@ -585,6 +585,135 @@ test("help panel follows the target on foot after leaving a vehicle", function()
     game.collisionHitNode = nil
 end)
 
+-- Home Spots page of the in-game menu
+local menu = game.newInGameMenu()
+local page
+
+local function getShownRows()
+    local rows = {}
+    for _, cell in ipairs(page.homeSpotsList.cells) do
+        table.insert(rows, string.format("%s|%s|%s", cell.name.text, cell.status.text, cell.distance.text))
+    end
+    return table.concat(rows, ", ")
+end
+
+local function getButtonTexts()
+    local texts = {}
+    for _, button in ipairs(page:getMenuButtonInfo()) do
+        table.insert(texts, button.text or button.inputAction)
+    end
+    return table.concat(texts, ",")
+end
+
+local function getPreview()
+    if not page.homeSpotsPreview.isVisible then
+        return "hidden"
+    end
+    return table.concat({page.homeSpotsPreviewImage.imageFilename, page.homeSpotsPreviewName.text,
+        page.homeSpotsPreviewStatus.text, page.homeSpotsPreviewDistance.text}, "|")
+end
+
+test("Home Spots page is added to the menu once, right after the settings", function()
+    g_gui.screenControllers[InGameMenu] = menu
+    HomeSpotOverview:update(16)
+    HomeSpotOverview:update(16)
+
+    page = menu[HomeSpotOverview.PAGE_NAME]
+    assert(page ~= nil, "page added")
+    assertEquals(menu.pagingElement.elements[3], page, "listed after the settings")
+    assertEquals(menu.pagingElement.pages[3].element, page, "paged after the settings")
+    assertEquals(menu.pageFrames[3], page, "tab after the settings")
+    assertEquals(#menu.pageFrames, 4, "added once")
+    assertEquals(menu.tabs[page].iconFilename, g_currentModDirectory .. "icon_homeSpotsMenu.dds", "tab icon")
+    assertEquals(page.homeSpotsHeaderText.text, "homeSpots_settingsSection", "title")
+    assertEquals(page.homeSpotsColumnDistance.text, "homeSpots_columnDistance", "column title")
+end)
+
+test("page lists the farm's vehicles with a spot, away ones first", function()
+    game.currentVehicle = nil
+    tractor.implements, plough.attacher = {}, nil
+    tractor.isControlled, tractor.isAIActive = false, false
+    game.place(tractor, 510, 0, 0)
+    game.place(plough, 10, -6, 0)
+    game.place(trailer, 30, 0, 0)
+    HomeSpots.store:set(trailer)
+    game.place(trailer, 30, 40, 0)
+    car.farmId = 2
+    HomeSpots.store:set(car)
+    game.place(car, 300, 300)
+
+    page:onFrameOpen()
+    assertEquals(getShownRows(), "Fendt|homeSpots_statusAway|500 m, Trailer|homeSpots_statusAway|40 m, Plough|homeSpots_statusHome|-")
+    assertEquals(page:getSelectedRow().vehicle, tractor, "first row selected")
+    assertEquals(page.homeSpotsList.cells[1].status.textColor[1], 0.98, "away in orange")
+    assertEquals(page.homeSpotsEmptyText.isVisible, false, "no empty text")
+    assertEquals(game.focusedElement, page.homeSpotsList, "list has the focus")
+    assertEquals(getButtonTexts(), "MENU_BACK,Send home,input_HOMESPOTS_SEND_ALL")
+    assertEquals(getPreview(), "store/Fendt.dds|Fendt|homeSpots_statusAway|500 m", "preview of the selected vehicle")
+    assertEquals(table.concat(page.homeSpotsPreviewImage.imageUVs, " "), "0 0 0 1 1 0 1 1", "whole picture")
+    assertEquals(page.homeSpotsPreviewStatus.textColor[1], 0.98, "preview status in orange")
+end)
+
+test("Send home on the page moves the selected vehicle with its tools", function()
+    tractor.implements = {{object = plough}}
+    plough.attacher = tractor
+    game.place(plough, 510, -6, 0)
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+
+    page.sendButtonInfo.callback()
+    HomeSpots:update(16)
+    assertEquals(getX(tractor), 10, "tractor home")
+    assertEquals(getX(plough), 10, "its tool home")
+    assertEquals(getX(trailer), 30, "trailer stays away")
+
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+    assertEquals(getShownRows(), "Trailer|homeSpots_statusAway|40 m, Fendt|homeSpots_statusHome|-, Plough|homeSpots_statusHome|-")
+    assertEquals(page:getSelectedRow().vehicle, tractor, "selection follows the tractor down the list")
+    assertEquals(getPreview(), "store/Fendt.dds|Fendt|homeSpots_statusHome|-", "preview follows it too")
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "nothing to send for it")
+end)
+
+test("page hides Send home for a vehicle that is home or in use", function()
+    page.homeSpotsList:setSelectedIndex(3)
+    assertEquals(getPreview(), "store/Plough.dds|Plough|homeSpots_statusHome|-", "preview of the tool picked")
+    page.homeSpotsList:setSelectedIndex(2)
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "home")
+
+    game.place(tractor, 200, 0)
+    tractor.isControlled = true
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+    assertEquals(page.homeSpotsList.cells[2].status.text, "homeSpots_statusInUse", "driven")
+    page.homeSpotsList:setSelectedIndex(2)
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "in use")
+
+    tractor.isControlled = false
+    game.place(tractor, 10, 0)
+end)
+
+test("Send all home on the page moves everything home", function()
+    page.sendAllButtonInfo.callback()
+    HomeSpots:update(16)
+    assertEquals(getX(trailer), 30, "trailer home")
+
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+    assertEquals(getShownRows(), "Fendt|homeSpots_statusHome|-, Plough|homeSpots_statusHome|-, Trailer|homeSpots_statusHome|-")
+end)
+
+test("page without any spot says how to set one", function()
+    local spots = HomeSpots.store.spots
+    HomeSpots.store.spots = {}
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+
+    assertEquals(#page.homeSpotsList.cells, 0, "no rows")
+    assert(page.homeSpotsEmptyText.isVisible, "empty text shown")
+    assertEquals(page.homeSpotsEmptyText.text, "homeSpots_overviewEmpty")
+    assertEquals(getButtonTexts(), "MENU_BACK", "only back")
+    assertEquals(getPreview(), "hidden", "no preview")
+
+    HomeSpots.store.spots = spots
+    car.farmId = 1
+end)
+
 require("multiplayer")(test, assertEquals, machine.newNetwork(luaGlobals))
 
 print(string.format("\n%d passed, %d failed", numPassed, numFailed))

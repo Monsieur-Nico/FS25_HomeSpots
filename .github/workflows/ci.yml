@@ -24,7 +24,7 @@ jobs:
         run: luacheck scripts tests
 
       - name: Validate modDesc.xml
-        run: xmllint --noout modDesc.xml
+        run: xmllint --noout modDesc.xml gui/*.xml
 
       - name: Run tests
         run: lua5.1 tests/run.lua

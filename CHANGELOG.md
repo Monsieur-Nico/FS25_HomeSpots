@@ -6,6 +6,13 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+### Added
+- A Home Spots page in the in-game menu, listed after Settings. It shows every vehicle and tool of your farm
+  that has a home spot, whether it is home, away or in use, and how far it is from its spot, with the
+  ones away at the top. The selected one's shop picture shows beside the list. "Send home" sends the
+  selected one home along with any tools hooked to it, and "Send all vehicles home" sends everything.
+  It works in multiplayer too.
+
 ## [1.2.0.0] - 2026-09-28
 
 ### Added

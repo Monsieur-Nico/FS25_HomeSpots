@@ -22,7 +22,7 @@ The same checks run on every push and pull request. Run them locally with Lua 5.
 
 ```
 luacheck scripts tests
-xmllint --noout modDesc.xml
+xmllint --noout modDesc.xml gui/*.xml
 lua5.1 tests/run.lua
 bash tools/build.sh
 ```
