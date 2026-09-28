@@ -98,7 +98,7 @@ function HomeSpotMapMenu.onSendHome(frame)
         return
     end
 
-    HomeSpots.sendHome(vehicles, false, true)
+    HomeSpots.request(HomeSpots.ACTION_SEND, vehicles)
     HomeSpotMapMenu.updateContextAction(frame, frame.currentHotspot)
     HomeSpotMapMenu.reloadContextButtons(frame)
 end

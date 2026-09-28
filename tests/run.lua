@@ -2,9 +2,16 @@
 -- Usage (from the repository root): lua5.1 tests/run.lua
 package.path = "tests/?.lua;" .. package.path
 
-local game = require("game_mock")
+-- The plain Lua globals, before the game stand-ins are added, for the separate machines of the multiplayer tests
+local luaGlobals = {}
+for name, value in pairs(_G) do
+    luaGlobals[name] = value
+end
 
-for _, name in ipairs({"HomeSpotArea", "HomeSpotStore", "HomeSpotHotspot", "HomeSpotSettings", "HomeSpots", "HomeSpotMapMenu"}) do
+local game = require("game_mock")
+local machine = require("machine")
+
+for _, name in ipairs(machine.SCRIPTS) do
     dofile("scripts/" .. name .. ".lua")
 end
 
@@ -45,7 +52,8 @@ local function getX(vehicle)
     return (game.getPosition(vehicle))
 end
 
-HomeSpots.onMissionLoaded({missionInfo = {savegameDirectory = "/savegame1"}})
+g_currentMission.missionInfo = {savegameDirectory = "/savegame1"}
+HomeSpots.onMissionLoaded(g_currentMission)
 
 test("set spot in a vehicle saves the whole combination", function()
     HomeSpots:onSetHomeInput()
@@ -115,7 +123,7 @@ test("spots and the tidy-up hour survive save and reload", function()
     assertEquals(game.countMapHotspots(), 0, "markers after leaving")
     assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_AWAY, "marker setting back to default")
 
-    HomeSpots.onMissionLoaded({missionInfo = {savegameDirectory = "/savegame1"}})
+    HomeSpots.onMissionLoaded(g_currentMission)
     assertEquals(HomeSpots.store.autoTidyHour, 20, "tidy-up hour")
     assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_ALWAYS, "marker setting")
     assert(HomeSpots.store:has(plough))
@@ -576,6 +584,8 @@ test("help panel follows the target on foot after leaving a vehicle", function()
     assertEquals(getShownEvent("HOMESPOTS_SEND_ONE").active, false, "on foot send hidden")
     game.collisionHitNode = nil
 end)
+
+require("multiplayer")(test, assertEquals, machine.newNetwork(luaGlobals))
 
 print(string.format("\n%d passed, %d failed", numPassed, numFailed))
 if numFailed > 0 then

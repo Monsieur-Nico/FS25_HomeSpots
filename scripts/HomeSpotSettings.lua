@@ -51,7 +51,7 @@ HomeSpotSettings.OPTIONS = {
             return HomeSpotSettings.getStateFromHour(HomeSpots.store.autoTidyHour)
         end,
         setState = function(state)
-            HomeSpots.store.autoTidyHour = HomeSpotSettings.getHourFromState(state)
+            HomeSpots.changeSettings(HomeSpotSettings.getHourFromState(state), HomeSpots.store.markerMode)
         end
     },
     {
@@ -68,7 +68,7 @@ HomeSpotSettings.OPTIONS = {
             return HomeSpots.store.markerMode
         end,
         setState = function(state)
-            HomeSpots.store.markerMode = state
+            HomeSpots.changeSettings(HomeSpots.store.autoTidyHour, state)
         end
     }
 }
@@ -134,7 +134,6 @@ local function addOptionRow(layout, rowTemplate, option)
             child.target = option
             child.onClickCallback = HomeSpotSettings.onOptionChanged
             child:setTexts(option.getTexts())
-            child:setDisabled(false)
 
             local tooltipElement = child.elements[1]
             if tooltipElement ~= nil and tooltipElement:isa(TextElement) then
@@ -196,11 +195,14 @@ function HomeSpotSettings.onOptionChanged(option, state)
 end
 
 
----Show the current value of every option
+---Show the current value of every option. In multiplayer only the host or a server admin can change them.
 function HomeSpotSettings.refresh()
+    local canChange = HomeSpots.getCanChangeSettings()
+
     for _, option in ipairs(HomeSpotSettings.OPTIONS) do
         if option.element ~= nil then
             option.element:setState(option.getState(), false)
+            option.element:setDisabled(not canChange)
         end
     end
 end

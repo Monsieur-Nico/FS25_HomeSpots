@@ -57,7 +57,9 @@ Both are saved with the savegame.
 ## Compatibility
 
 - Farming Simulator 25 on PC.
-- Single-player. Multiplayer support is planned.
+- Single-player and multiplayer. In multiplayer every player shares the same spots and map markers,
+  Alt + H and the map send home only your own farm's vehicles, and only the host or a server admin can
+  change the Home Spots settings.
 - No other mods are needed.
 
 ## Reporting problems

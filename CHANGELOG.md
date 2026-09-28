@@ -6,6 +6,20 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.2.0.0] - 2026-09-28
+
+### Added
+- Multiplayer support. The host keeps every home spot and does every move; players send their key presses
+  to the host and get back the spots, settings and a message saying what happened. Everyone sees the same
+  map markers.
+- In multiplayer, Alt + H, Alt + U and the map's "Send home" act only on your own farm's vehicles, while the
+  daily send-home time sends every farm's vehicles home and tells every player.
+
+### Changed
+- In multiplayer, only the host or a server admin can change the Home Spots settings; for other players the
+  options are greyed out.
+- Vehicles another player is driving are left alone, like those a worker is using.
+
 ## [1.1.0.9] - 2026-09-28
 
 ### Added
@@ -72,7 +86,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.9...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.2.0.0...HEAD
+[1.2.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.9...v1.2.0.0
 [1.1.0.9]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.8...v1.1.0.9
 [1.1.0.8]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.7...v1.1.0.8
 [1.1.0.7]: https://github.com/Monsieur-Nico/FS25_HomeSpots/releases/tag/v1.1.0.7

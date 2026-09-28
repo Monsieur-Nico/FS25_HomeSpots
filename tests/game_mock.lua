@@ -28,6 +28,72 @@ function Class(classTable, superClass)
     return mt
 end
 
+-- Network: events, streams and object ids. A stream is a list of typed values, so reading a
+-- different type or count than was written fails the test like a broken stream would in the game.
+game.eventClasses = {}
+game.objects = {}
+game.nextObjectId = 1
+
+Event = {}
+function Event.new(mt) return setmetatable({}, mt) end
+function InitEventClass(classTable, name) game.eventClasses[name] = classTable end
+
+function game.newStream()
+    return {values = {}, readPos = 0}
+end
+
+local function streamWrite(kind, check)
+    return function(stream, value)
+        assert(check(value), string.format("%s cannot hold %s", kind, tostring(value)))
+        table.insert(stream.values, {kind, value})
+    end
+end
+
+local function streamRead(kind)
+    return function(stream)
+        stream.readPos = stream.readPos + 1
+        local entry = stream.values[stream.readPos]
+        assert(entry ~= nil, "read past the end of the stream")
+        assert(entry[1] == kind, string.format("read %s where %s was written", kind, entry[1]))
+        return entry[2]
+    end
+end
+
+local function isInteger(min, max)
+    return function(value)
+        return type(value) == "number" and value == math.floor(value) and value >= min and value <= max
+    end
+end
+
+local function isNumber(value) return type(value) == "number" end
+local function isBoolean(value) return type(value) == "boolean" end
+
+streamWriteBool, streamReadBool = streamWrite("Bool", isBoolean), streamRead("Bool")
+streamWriteInt8, streamReadInt8 = streamWrite("Int8", isInteger(-128, 127)), streamRead("Int8")
+streamWriteUInt8, streamReadUInt8 = streamWrite("UInt8", isInteger(0, 255)), streamRead("UInt8")
+streamWriteUInt16, streamReadUInt16 = streamWrite("UInt16", isInteger(0, 65535)), streamRead("UInt16")
+streamWriteFloat32, streamReadFloat32 = streamWrite("Float32", isNumber), streamRead("Float32")
+
+NetworkUtil = {
+    getObjectId = function(object) return object.objectId end,
+    getObject = function(objectId) return game.objects[objectId] end,
+    writeNodeObjectId = streamWrite("ObjectId", isInteger(1, 65535)),
+    readNodeObjectId = streamRead("ObjectId"),
+}
+
+function game.setObjectId(object, objectId)
+    object.objectId = objectId
+    game.objects[objectId] = object
+end
+
+-- Single player runs a server without remote players; the multiplayer tests connect some
+g_server = {connections = {}}
+function g_server:broadcastEvent(event)
+    for _, connection in ipairs(self.connections) do
+        connection:sendEvent(event)
+    end
+end
+
 -- XML (legacy handle based API)
 local xmlHandles, nextXmlHandle = {}, 1
 
@@ -256,6 +322,7 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
     function vehicle:getAttachedImplements() return self.implements end
     function vehicle:getIsAIActive() return self.isAIActive == true end
     function vehicle:getIsControlled() return self.isControlled == true end
+    function vehicle:getOwnerConnection() return self.ownerConnection end
     function vehicle:removeFromPhysics() end
     function vehicle:addToPhysics() end
 
@@ -286,6 +353,8 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
 
     game.nodeToVehicle[node] = vehicle
     table.insert(game.vehicles, vehicle)
+    game.setObjectId(vehicle, game.nextObjectId)
+    game.nextObjectId = game.nextObjectId + 1
 
     return vehicle
 end
@@ -326,11 +395,29 @@ g_currentMission = {
         getVehicleByNodeId = function(_, node) return game.nodeToVehicle[node] end,
     },
     environment = {currentHour = 0},
-    getIsServer = function() return true end,
-    getFarmId = function() return 1 end,
+    isServer = true,
+    isClient = true,
+    isMasterUser = false,
+    farmId = 1,
+    getIsServer = function(self) return self.isServer end,
+    getIsClient = function(self) return self.isClient end,
+    getFarmId = function(self) return self.farmId end,
+    userManager = {
+        getUserIdByConnection = function(_, connection) return connection.userId end,
+        getIsConnectionMasterUser = function(_, connection) return connection.isMasterUser == true end,
+    },
     addIngameNotification = function(_, notificationType, text) table.insert(game.notifications, {notificationType, text}) end,
     addMapHotspot = function(_, hotspot) game.hotspotsOnMap[hotspot] = true end,
     removeMapHotspot = function(_, hotspot) game.hotspotsOnMap[hotspot] = nil end,
+}
+
+-- Farms of the players, by user id
+game.userFarms = {}
+g_farmManager = {
+    getFarmByUserId = function(_, userId)
+        local farmId = game.userFarms[userId]
+        return farmId ~= nil and {farmId = farmId} or nil
+    end,
 }
 
 function game.lastNotification()

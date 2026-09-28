@@ -1,6 +1,8 @@
----Stores one home spot per vehicle, keyed by the vehicle's unique id.
+---Stores one home spot per vehicle.
 -- A home spot is the world position and rotation of every component of the
 -- vehicle, the same data the savegame uses to place vehicles on load.
+-- The server (and single player) keys spots by the vehicle's unique id, which the savegame uses.
+-- A multiplayer client never learns unique ids, so it keys the spots the server sends by network object id.
 HomeSpotStore = {}
 local HomeSpotStore_mt = Class(HomeSpotStore)
 
@@ -40,6 +42,7 @@ end
 function HomeSpotStore.new()
     local self = setmetatable({}, HomeSpotStore_mt)
 
+    self.isServer = true
     self:reset()
 
     return self
@@ -48,14 +51,51 @@ end
 
 ---Remove every home spot and restore default settings
 function HomeSpotStore:reset()
-    self.spots = {}
+    self:clearSpots()
     self.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
     self.markerMode = HomeSpotStore.MARKERS_AWAY
 end
 
 
+---Remove every home spot, keeping the settings
+function HomeSpotStore:clearSpots()
+    self.spots = {}
+end
+
+
+---Choose how spots are keyed: by unique id on the server, by network object id on a multiplayer client
+-- @param boolean isServer true on the server and in single player
+function HomeSpotStore:setIsServer(isServer)
+    self.isServer = isServer
+end
+
+
+---Returns the key a vehicle's spot is stored under
+-- @param table vehicle vehicle
+-- @return any key unique id on the server, network object id on a client
+function HomeSpotStore:getKey(vehicle)
+    if self.isServer then
+        return vehicle:getUniqueId()
+    end
+
+    return NetworkUtil.getObjectId(vehicle)
+end
+
+
+---Returns the vehicle a spot key belongs to
+-- @param any key spot key
+-- @return table vehicle vehicle, or nil once it is gone
+function HomeSpotStore:getVehicle(key)
+    if self.isServer then
+        return g_currentMission.vehicleSystem:getVehicleByUniqueId(key)
+    end
+
+    return NetworkUtil.getObject(key)
+end
+
+
 ---Returns all home spots
--- @return table spots components by vehicle unique id
+-- @return table spots components by spot key
 function HomeSpotStore:getAll()
     return self.spots
 end
@@ -75,6 +115,7 @@ end
 
 ---Save the vehicle's current position as its home spot (create or update)
 -- @param table vehicle vehicle
+-- @return table components the saved component positions
 function HomeSpotStore:set(vehicle)
     local components = {}
 
@@ -85,7 +126,19 @@ function HomeSpotStore:set(vehicle)
         components[i] = {{x, y, z}, {rx, ry, rz}}
     end
 
-    self.spots[vehicle:getUniqueId()] = components
+    self:setByKey(self:getKey(vehicle), components)
+
+    return components
+end
+
+
+---Store a spot under its key, or delete it
+-- @param any key spot key
+-- @param table components component positions, or nil to delete the spot
+function HomeSpotStore:setByKey(key, components)
+    if key ~= nil then
+        self.spots[key] = components
+    end
 end
 
 
@@ -93,7 +146,12 @@ end
 -- @param table vehicle vehicle
 -- @return table components component positions, or nil when the vehicle has no home spot
 function HomeSpotStore:get(vehicle)
-    return self.spots[vehicle:getUniqueId()]
+    local key = self:getKey(vehicle)
+    if key == nil then
+        return nil
+    end
+
+    return self.spots[key]
 end
 
 
@@ -109,10 +167,9 @@ end
 -- @param table vehicle vehicle
 -- @return boolean removed true if the vehicle had a home spot
 function HomeSpotStore:remove(vehicle)
-    local uniqueId = vehicle:getUniqueId()
-    local hadSpot = self.spots[uniqueId] ~= nil
+    local hadSpot = self:get(vehicle) ~= nil
 
-    self.spots[uniqueId] = nil
+    self:setByKey(self:getKey(vehicle), nil)
 
     return hadSpot
 end

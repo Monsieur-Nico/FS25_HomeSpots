@@ -8,12 +8,12 @@ HomeSpotHotspot.ICON_SIZE = 32
 
 
 ---Create a new map marker
--- @param string uniqueId unique id of the vehicle the spot belongs to
+-- @param any key spot key of the vehicle the spot belongs to, see HomeSpotStore:getKey
 -- @return table self
-function HomeSpotHotspot.new(uniqueId)
+function HomeSpotHotspot.new(key)
     local self = MapHotspot.new(HomeSpotHotspot_mt)
 
-    self.uniqueId = uniqueId
+    self.key = key
     self.width, self.height = getNormalizedScreenValues(HomeSpotHotspot.ICON_SIZE, HomeSpotHotspot.ICON_SIZE)
     self.icon = Overlay.new(HomeSpotHotspot.ICON_AWAY, 0, 0, self.width, self.height)
     self.clickArea = MapHotspot.getClickCircle(0.667)
@@ -32,7 +32,7 @@ end
 ---Returns the vehicle the spot belongs to
 -- @return table vehicle vehicle, or nil once it has been sold
 function HomeSpotHotspot:getVehicle()
-    return g_currentMission.vehicleSystem:getVehicleByUniqueId(self.uniqueId)
+    return HomeSpots.store:getVehicle(self.key)
 end
 
 

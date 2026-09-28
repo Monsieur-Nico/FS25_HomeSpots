@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.1.0.9</version>
+    <version>1.2.0.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -18,14 +18,13 @@ How to use:
 - A house marker on the map shows each spot whose vehicle is away. In the settings you can show every spot instead (green when home, orange when away) or none.
 - In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
 
-Vehicles driven by you or by a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
+Vehicles driven by you, another player or a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
-Single-player only for now.
+Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
 
-Changelog 1.1.0.9:
-- New: map markers show only spots whose vehicle is away, with a setting for always (green or orange) or off.
-- New: "Send home" in the map menu of a selected vehicle or tool.
-- Fix: prompts no longer freeze on one vehicle after getting in and out of it.]]></en>
+Changelog 1.2.0.0:
+- New: multiplayer support.
+- In multiplayer, only the host or a server admin can change the Home Spots settings.]]></en>
         <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
 
 So geht's:
@@ -37,14 +36,13 @@ So geht's:
 - Ein Haus-Symbol auf der Karte zeigt jeden Platz, dessen Fahrzeug unterwegs ist. In den Einstellungen kannst du stattdessen alle Plätze zeigen (grün daheim, orange unterwegs) oder keine.
 - Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
 
-Fahrzeuge, die du oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
+Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
 
-Vorerst nur Einzelspieler.
+Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
 
-Changelog 1.1.0.9:
-- Neu: Karten-Symbole zeigen nur Plätze, deren Fahrzeug unterwegs ist, mit Einstellung für immer (grün oder orange) oder aus.
-- Neu: "Zum Stellplatz" im Kartenmenü eines ausgewählten Fahrzeugs oder Geräts.
-- Behoben: Hinweise bleiben nach dem Ein- und Aussteigen nicht mehr an einem Fahrzeug hängen.]]></de>
+Changelog 1.2.0.0:
+- Neu: Mehrspieler-Unterstützung.
+- Im Mehrspieler kann nur der Host oder ein Server-Admin die Stellplatz-Einstellungen ändern.]]></de>
         <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
 
 Utilisation :
@@ -56,17 +54,16 @@ Utilisation :
 - Une petite maison sur la carte montre chaque place dont le véhicule est absent. Dans les paramètres, vous pouvez afficher toutes les places (vert si présent, orange si absent) ou aucune.
 - Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
 
-Les véhicules conduits par vous ou par un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
+Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
 
-Solo uniquement pour le moment.
+Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
 
-Changelog 1.1.0.9 :
-- Nouveau : la carte ne montre que les places dont le véhicule est absent, avec un réglage pour toujours (vert ou orange) ou jamais.
-- Nouveau : « Renvoyer à sa place » dans le menu de la carte d'un véhicule ou outil sélectionné.
-- Correction : les indications ne restent plus bloquées sur un véhicule après y être monté puis descendu.]]></fr>
+Changelog 1.2.0.0 :
+- Nouveau : prise en charge du multijoueur.
+- En multijoueur, seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.]]></fr>
     </description>
     <iconFilename>icon_homeSpots.dds</iconFilename>
-    <multiplayer supported="false" />
+    <multiplayer supported="true" />
 
     <extraSourceFiles>
         <sourceFile filename="scripts/HomeSpotArea.lua" />
@@ -74,6 +71,7 @@ Changelog 1.1.0.9 :
         <sourceFile filename="scripts/HomeSpotHotspot.lua" />
         <sourceFile filename="scripts/HomeSpotSettings.lua" />
         <sourceFile filename="scripts/HomeSpots.lua" />
+        <sourceFile filename="scripts/HomeSpotEvents.lua" />
         <sourceFile filename="scripts/HomeSpotMapMenu.lua" />
     </extraSourceFiles>
 
@@ -249,11 +247,6 @@ Changelog 1.1.0.9 :
             <en>Off</en>
             <de>Aus</de>
             <fr>Désactivé</fr>
-        </text>
-        <text name="homeSpots_singlePlayerOnly">
-            <en>Home Spots only works in single-player for now</en>
-            <de>Stellplätze funktionieren vorerst nur im Einzelspieler</de>
-            <fr>Places de rangement ne fonctionne qu'en solo pour le moment</fr>
         </text>
     </l10n>
 </modDesc>

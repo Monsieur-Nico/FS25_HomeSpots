@@ -4,6 +4,18 @@ HomeSpots.MOD_NAME = g_currentModName
 HomeSpots.MAX_NAMES_LISTED = 3
 HomeSpots.MAX_NAMES_IN_PROMPT = 2
 
+-- What a player can ask for, carried out by the server
+HomeSpots.ACTION_SET = 1
+HomeSpots.ACTION_CLEAR = 2
+HomeSpots.ACTION_SEND = 3
+HomeSpots.ACTION_SEND_ALL = 4
+
+-- What the player is told afterwards
+HomeSpots.REPORT_SAVED = 1
+HomeSpots.REPORT_CLEARED = 2
+HomeSpots.REPORT_SENT = 3
+HomeSpots.REPORT_NOTHING = 4
+
 -- A vehicle this close to its home spot (m, and heading in rad) counts as already home and is not moved
 HomeSpots.AT_HOME_DISTANCE = 1.0
 HomeSpots.AT_HOME_ANGLE = math.rad(10)
@@ -29,6 +41,15 @@ HomeSpots.inputTargets = {}
 HomeSpots.shownActionState = nil
 
 
+---Server: send an event to every connected player
+-- @param table event event
+function HomeSpots.broadcast(event)
+    if g_server ~= nil then
+        g_server:broadcastEvent(event)
+    end
+end
+
+
 ---Returns a translated text with its placeholders filled in
 -- @param string textName l10n text name
 -- @param any ... values for the text's placeholders
@@ -42,6 +63,10 @@ end
 -- @param string text text
 -- @param integer notificationType notification type, OK by default
 function HomeSpots.notify(text, notificationType)
+    if not g_currentMission:getIsClient() then
+        return
+    end
+
     g_currentMission:addIngameNotification(notificationType or FSBaseMission.INGAME_NOTIFICATION_OK, text)
 end
 
@@ -52,25 +77,44 @@ end
 function HomeSpots.canHaveHomeSpot(vehicle)
     return vehicle.components ~= nil
         and vehicle.size ~= nil
-        and vehicle:getUniqueId() ~= nil
+        and (not HomeSpots.store.isServer or vehicle:getUniqueId() ~= nil)
         and not vehicle.isPallet
         and vehicle.trainSystem == nil
         and vehicle.spec_locomotive == nil
 end
 
 
----Returns true if the vehicle, or whatever it is attached to, is driven by an AI worker or, unless allowed, by a player
+---Returns true if a worker drives the vehicle's combination, or a player other than the one who picked it
 -- @param table vehicle vehicle
--- @param boolean allowControlled true to let a player-driven vehicle count as free (the player picked it themselves)
+-- @param table options send options, see HomeSpots.sendHome
 -- @return boolean isBusy
-function HomeSpots.getIsBusy(vehicle, allowControlled)
+function HomeSpots.getIsBusy(vehicle, options)
     local rootVehicle = vehicle:getRootVehicle()
 
     if rootVehicle.getIsAIActive ~= nil and rootVehicle:getIsAIActive() then
         return true
     end
 
-    return not allowControlled and rootVehicle.getIsControlled ~= nil and rootVehicle:getIsControlled()
+    if rootVehicle.getIsControlled == nil or not rootVehicle:getIsControlled() then
+        return false
+    end
+
+    return not (options.isTargeted and HomeSpots.getIsControlledBy(rootVehicle, options.connection))
+end
+
+
+---Returns true if the player who asked sits in the vehicle
+-- @param table rootVehicle root vehicle of a combination
+-- @param table connection connection of the player who asked, nil for the local player
+-- @return boolean isControlledBy
+function HomeSpots.getIsControlledBy(rootVehicle, connection)
+    if connection ~= nil then
+        return rootVehicle.getOwnerConnection ~= nil and rootVehicle:getOwnerConnection() == connection
+    end
+
+    local currentVehicle = g_localPlayer ~= nil and g_localPlayer:getCurrentVehicle() or nil
+
+    return currentVehicle ~= nil and currentVehicle:getRootVehicle() == rootVehicle
 end
 
 
@@ -221,45 +265,206 @@ end
 
 ---Action: save the current position of the targeted vehicles as their home spots
 function HomeSpots:onSetHomeInput()
-    local vehicles = HomeSpots.getTargetVehicles()
-
-    for _, vehicle in ipairs(vehicles) do
-        HomeSpots.store:set(vehicle)
-        HomeSpots.updateHotspot(vehicle:getUniqueId())
-    end
-
-    if #vehicles > 0 then
-        HomeSpots.notify(HomeSpots.getText("homeSpots_saved", HomeSpots.getVehicleNames(vehicles, HomeSpots.MAX_NAMES_LISTED)))
-    end
+    HomeSpots.request(HomeSpots.ACTION_SET, HomeSpots.getTargetVehicles())
 end
 
 
 ---Action: delete the home spots of the targeted vehicles
 function HomeSpots:onClearHomeInput()
-    local removed = {}
-
-    for _, vehicle in ipairs(HomeSpots.getTargetVehicles()) do
-        if HomeSpots.store:remove(vehicle) then
-            HomeSpots.removeHotspot(vehicle:getUniqueId())
-            table.insert(removed, vehicle)
-        end
-    end
-
-    if #removed > 0 then
-        HomeSpots.notify(HomeSpots.getText("homeSpots_cleared", HomeSpots.getVehicleNames(removed, HomeSpots.MAX_NAMES_LISTED)))
-    end
+    HomeSpots.request(HomeSpots.ACTION_CLEAR, HomeSpots.getTargetVehicles())
 end
 
 
----Action: send every vehicle and tool home
+---Action: send every vehicle and tool of the player's farm home
 function HomeSpots:onSendAllHomeInput()
-    HomeSpots.sendAllHome(false)
+    HomeSpots.request(HomeSpots.ACTION_SEND_ALL, {})
 end
 
 
 ---Action: send only what the player sits in or looks at home
 function HomeSpots:onSendTargetHomeInput()
-    HomeSpots.sendTargetHome()
+    HomeSpots.request(HomeSpots.ACTION_SEND, HomeSpots.getTargetVehicles())
+end
+
+
+---Carry out an action: right away on the server (and in single player), or by asking the server from a multiplayer client
+-- @param integer action HomeSpots.ACTION_*
+-- @param table vehicles vehicles the action is for (empty for send all)
+function HomeSpots.request(action, vehicles)
+    if action ~= HomeSpots.ACTION_SEND_ALL and #vehicles == 0 then
+        return
+    end
+
+    if g_currentMission:getIsServer() then
+        HomeSpots.runRequest(action, vehicles, g_currentMission:getFarmId(), nil)
+    else
+        g_client:getServerConnection():sendEvent(HomeSpotRequestEvent.new(action, vehicles))
+    end
+end
+
+
+---Server: carry out an action for a player, only on vehicles of that player's farm
+-- @param integer action HomeSpots.ACTION_*
+-- @param table vehicles vehicles the action is for (empty for send all)
+-- @param integer farmId farm of the player who asked
+-- @param table connection connection of the player who asked, nil for the local player
+function HomeSpots.runRequest(action, vehicles, farmId, connection)
+    local options = {isAutomatic = false, isTargeted = action ~= HomeSpots.ACTION_SEND_ALL, farmId = farmId, connection = connection}
+
+    if action == HomeSpots.ACTION_SEND_ALL then
+        HomeSpots.sendHome(g_currentMission.vehicleSystem.vehicles, options)
+        return
+    end
+
+    local farmVehicles = {}
+    for _, vehicle in ipairs(vehicles) do
+        if HomeSpots.canHaveHomeSpot(vehicle) and vehicle:getOwnerFarmId() == farmId then
+            table.insert(farmVehicles, vehicle)
+        end
+    end
+
+    if action == HomeSpots.ACTION_SEND then
+        if #farmVehicles > 0 then
+            HomeSpots.sendHome(farmVehicles, options)
+        end
+    elseif action == HomeSpots.ACTION_SET then
+        HomeSpots.setSpots(farmVehicles, connection)
+    elseif action == HomeSpots.ACTION_CLEAR then
+        HomeSpots.clearSpots(farmVehicles, connection)
+    end
+end
+
+
+---Server: save the current position of vehicles as their home spots and tell every player
+-- @param table vehicles vehicles
+-- @param table connection connection of the player who asked, nil for the local player
+function HomeSpots.setSpots(vehicles, connection)
+    local changes = {}
+    for _, vehicle in ipairs(vehicles) do
+        table.insert(changes, {vehicle = vehicle, components = HomeSpots.store:set(vehicle)})
+    end
+
+    if #changes > 0 then
+        HomeSpots.onSpotsChanged(changes)
+
+        local report = HomeSpots.newReport(HomeSpots.REPORT_SAVED)
+        report.vehicles = vehicles
+        HomeSpots.deliverReport(report, connection)
+    end
+end
+
+
+---Server: delete the home spots of vehicles and tell every player
+-- @param table vehicles vehicles
+-- @param table connection connection of the player who asked, nil for the local player
+function HomeSpots.clearSpots(vehicles, connection)
+    local changes = {}
+    local removed = {}
+    for _, vehicle in ipairs(vehicles) do
+        if HomeSpots.store:remove(vehicle) then
+            table.insert(changes, {vehicle = vehicle, components = nil})
+            table.insert(removed, vehicle)
+        end
+    end
+
+    if #removed > 0 then
+        HomeSpots.onSpotsChanged(changes)
+
+        local report = HomeSpots.newReport(HomeSpots.REPORT_CLEARED)
+        report.vehicles = removed
+        HomeSpots.deliverReport(report, connection)
+    end
+end
+
+
+---Server: update the map markers of changed spots and send the changes to every player
+-- @param table changes list of {vehicle, components}; components nil for a removed spot
+function HomeSpots.onSpotsChanged(changes)
+    for _, change in ipairs(changes) do
+        HomeSpots.updateHotspot(HomeSpots.store:getKey(change.vehicle))
+    end
+
+    HomeSpots.broadcast(HomeSpotSpotsEvent.new(changes, false))
+end
+
+
+---Multiplayer client: take over spots sent by the server
+-- @param table entries list of {objectId, components}; components nil for a removed spot
+-- @param boolean isFullSync true when the entries are all spots, replacing the ones known so far
+function HomeSpots.onSpotsReceived(entries, isFullSync)
+    HomeSpots.store:setIsServer(false)
+
+    if isFullSync then
+        HomeSpots.removeAllHotspots()
+        HomeSpots.store:clearSpots()
+    end
+
+    for _, entry in ipairs(entries) do
+        HomeSpots.store:setByKey(entry.objectId, entry.components)
+        HomeSpots.updateHotspot(entry.objectId)
+    end
+
+    HomeSpots.shownActionState = nil
+end
+
+
+---Server: send a player who just joined the settings and every home spot
+-- @param table mission mission
+-- @param table connection connection of the player who joined
+function HomeSpots.onClientJoined(mission, connection)
+    if connection == nil or connection:getIsLocal() then
+        return
+    end
+
+    local entries = {}
+    for key, components in pairs(HomeSpots.store:getAll()) do
+        local vehicle = HomeSpots.store:getVehicle(key)
+        if vehicle ~= nil then
+            table.insert(entries, {vehicle = vehicle, components = components})
+        end
+    end
+
+    connection:sendEvent(HomeSpotSettingsEvent.new(HomeSpots.store.autoTidyHour, HomeSpots.store.markerMode))
+    connection:sendEvent(HomeSpotSpotsEvent.new(entries, true))
+end
+
+
+---Returns true if this player may change the Home Spots settings: in single player, as host, or as server admin
+-- @return boolean canChange
+function HomeSpots.getCanChangeSettings()
+    return g_currentMission:getIsServer() or g_currentMission.isMasterUser == true
+end
+
+
+---Change the settings from the settings page: directly on the server, or by asking it
+-- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
+-- @param integer markerMode map marker mode
+function HomeSpots.changeSettings(autoTidyHour, markerMode)
+    if g_currentMission:getIsServer() then
+        HomeSpots.applySettings(autoTidyHour, markerMode)
+    else
+        HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
+        g_client:getServerConnection():sendEvent(HomeSpotSettingsEvent.new(autoTidyHour, markerMode))
+    end
+end
+
+
+---Server: use new settings and send them to every player
+-- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
+-- @param integer markerMode map marker mode
+function HomeSpots.applySettings(autoTidyHour, markerMode)
+    HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
+    HomeSpots.broadcast(HomeSpotSettingsEvent.new(autoTidyHour, markerMode))
+end
+
+
+---Use settings (the server's, or this player's own change) and show them on the settings page
+-- @param integer autoTidyHour daily send-home hour, or HomeSpotStore.AUTO_TIDY_OFF
+-- @param integer markerMode map marker mode
+function HomeSpots.onSettingsReceived(autoTidyHour, markerMode)
+    HomeSpots.store.autoTidyHour = autoTidyHour
+    HomeSpots.store.markerMode = markerMode
+    HomeSpotSettings.refresh()
 end
 
 
@@ -340,43 +545,23 @@ function HomeSpots.resolveBlockedSpots(moves, staticAreas)
 end
 
 
----Send every vehicle and tool of the player's farm to its home spot
--- @param boolean isAutomatic true when triggered by the daily send-home time
-function HomeSpots.sendAllHome(isAutomatic)
-    HomeSpots.sendHome(g_currentMission.vehicleSystem.vehicles, isAutomatic, false)
+---Server: send every farm's vehicles and tools home, at the daily send-home time
+function HomeSpots.sendAllHome()
+    HomeSpots.sendHome(g_currentMission.vehicleSystem.vehicles, {isAutomatic = true, isTargeted = false})
 end
 
 
----Send only the combination the player sits in, or the vehicle or tool the player looks at, to its home spot.
--- The player picked it, so a vehicle the player drives goes too, with the player in it.
-function HomeSpots.sendTargetHome()
-    local vehicles = HomeSpots.getTargetVehicles()
-
-    if #vehicles > 0 then
-        HomeSpots.sendHome(vehicles, false, true)
-    end
-end
-
-
----Send vehicles of the player's farm to their home spots.
+---Server: send vehicles to their home spots.
 -- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
 -- Tools without a home spot are unhooked and left where they are.
 -- @param table vehicles vehicles to send home, those without a home spot are skipped
--- @param boolean isAutomatic true when triggered by the daily send-home time
--- @param boolean isTargeted true when the player picked these vehicles, the report then names them
-function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
-    if not g_currentMission:getIsServer() then
-        if not isAutomatic then
-            HomeSpots.notify(HomeSpots.getText("homeSpots_singlePlayerOnly"))
-        end
-        return
-    end
-
+-- @param table options isAutomatic (daily send-home time), isTargeted (the player picked these vehicles, the report names them),
+--   farmId (only this farm's vehicles, nil for every farm), connection (player who asked, nil for the local player)
+function HomeSpots.sendHome(vehicles, options)
     if HomeSpots.pendingMoves ~= nil then
         return
     end
 
-    local farmId = g_currentMission:getFarmId()
     local candidates = {}
     local isMoving = {}
     local numBusy = 0
@@ -385,8 +570,8 @@ function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
     for _, vehicle in ipairs(vehicles) do
         local components = HomeSpots.store:get(vehicle)
 
-        if components ~= nil and vehicle:getOwnerFarmId() == farmId and HomeSpots.canHaveHomeSpot(vehicle) then
-            if HomeSpots.getIsBusy(vehicle, isTargeted) then
+        if components ~= nil and (options.farmId == nil or vehicle:getOwnerFarmId() == options.farmId) and HomeSpots.canHaveHomeSpot(vehicle) then
+            if HomeSpots.getIsBusy(vehicle, options) then
                 numBusy = numBusy + 1
             elseif #components == #vehicle.components then
                 local isAtHome, homeArea, currentArea = HomeSpots.getHomePose(vehicle, components)
@@ -407,8 +592,8 @@ function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
     end
 
     if #candidates == 0 and numBusy == 0 and #atHome == 0 then
-        if not isAutomatic and not isTargeted then
-            HomeSpots.notify(HomeSpots.getText("homeSpots_none"))
+        if not options.isAutomatic and not options.isTargeted then
+            HomeSpots.deliverReport(HomeSpots.newReport(HomeSpots.REPORT_NOTHING), options.connection)
         end
         return
     end
@@ -427,7 +612,14 @@ function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
     end
 
     HomeSpots.pendingMoves = accepted
-    HomeSpots.pendingReport = {isAutomatic = isAutomatic, isTargeted = isTargeted, numBusy = numBusy, atHome = atHome, blocked = blocked}
+    local report = HomeSpots.newReport(HomeSpots.REPORT_SENT)
+    report.isAutomatic = options.isAutomatic
+    report.isTargeted = options.isTargeted
+    report.numBusy = numBusy
+    report.atHome = atHome
+    report.blocked = HomeSpots.getMovedVehicles(blocked)
+    report.connection = options.connection
+    HomeSpots.pendingReport = report
 end
 
 
@@ -522,14 +714,61 @@ function HomeSpots.processPendingMoves()
 
     local report = HomeSpots.pendingReport
     HomeSpots.pendingReport = nil
+    report.vehicles = moved
 
+    HomeSpots.deliverReport(report, report.connection)
+end
+
+
+---Create an empty report
+-- @param integer kind HomeSpots.REPORT_*
+-- @return table report kind, vehicles (saved, removed or moved), atHome, blocked, numBusy, isAutomatic, isTargeted
+function HomeSpots.newReport(kind)
+    return {kind = kind, vehicles = {}, atHome = {}, blocked = {}, numBusy = 0, isAutomatic = false, isTargeted = false}
+end
+
+
+---Server: tell the player who asked what happened. The daily send-home is told to every player.
+-- @param table report report
+-- @param table connection connection of the player who asked, nil for the local player
+function HomeSpots.deliverReport(report, connection)
+    if report.isAutomatic then
+        HomeSpots.broadcast(HomeSpotReportEvent.new(report))
+        HomeSpots.showReport(report)
+    elseif connection ~= nil then
+        connection:sendEvent(HomeSpotReportEvent.new(report))
+    else
+        HomeSpots.showReport(report)
+    end
+end
+
+
+---Show a report as an in-game notification
+-- @param table report report
+function HomeSpots.showReport(report)
+    local names = function(vehicles)
+        return HomeSpots.getVehicleNames(vehicles, HomeSpots.MAX_NAMES_LISTED)
+    end
+
+    if report.kind == HomeSpots.REPORT_SAVED then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_saved", names(report.vehicles)))
+        return
+    elseif report.kind == HomeSpots.REPORT_CLEARED then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_cleared", names(report.vehicles)))
+        return
+    elseif report.kind == HomeSpots.REPORT_NOTHING then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_none"))
+        return
+    end
+
+    local moved = report.vehicles
     local parts = {}
     if report.isTargeted then
         if #moved > 0 then
-            table.insert(parts, HomeSpots.getText("homeSpots_sentHomeFor", HomeSpots.getVehicleNames(moved, HomeSpots.MAX_NAMES_LISTED)))
+            table.insert(parts, HomeSpots.getText("homeSpots_sentHomeFor", names(moved)))
         end
         if #report.atHome > 0 then
-            table.insert(parts, HomeSpots.getText("homeSpots_alreadyHomeFor", HomeSpots.getVehicleNames(report.atHome, HomeSpots.MAX_NAMES_LISTED)))
+            table.insert(parts, HomeSpots.getText("homeSpots_alreadyHomeFor", names(report.atHome)))
         end
     else
         if #moved > 0 or #report.atHome == 0 then
@@ -544,7 +783,7 @@ function HomeSpots.processPendingMoves()
         table.insert(parts, HomeSpots.getText("homeSpots_inUse", report.numBusy))
     end
     if #report.blocked > 0 then
-        table.insert(parts, HomeSpots.getText("homeSpots_blocked", HomeSpots.getVehicleNames(HomeSpots.getMovedVehicles(report.blocked), HomeSpots.MAX_NAMES_LISTED)))
+        table.insert(parts, HomeSpots.getText("homeSpots_blocked", names(report.blocked)))
     end
 
     local text = table.concat(parts, ". ")
@@ -556,18 +795,19 @@ function HomeSpots.processPendingMoves()
 end
 
 
----Create or move the map marker of a home spot
--- @param string uniqueId vehicle unique id
-function HomeSpots.updateHotspot(uniqueId)
-    local components = HomeSpots.store:getAll()[uniqueId]
-    if components == nil then
+---Create, move or remove the map marker of a home spot to match the store
+-- @param any key spot key
+function HomeSpots.updateHotspot(key)
+    local components = HomeSpots.store:getAll()[key]
+    if components == nil or not g_currentMission:getIsClient() then
+        HomeSpots.removeHotspot(key)
         return
     end
 
-    local hotspot = HomeSpots.hotspots[uniqueId]
+    local hotspot = HomeSpots.hotspots[key]
     if hotspot == nil then
-        hotspot = HomeSpotHotspot.new(uniqueId)
-        HomeSpots.hotspots[uniqueId] = hotspot
+        hotspot = HomeSpotHotspot.new(key)
+        HomeSpots.hotspots[key] = hotspot
         g_currentMission:addMapHotspot(hotspot)
     end
 
@@ -577,21 +817,21 @@ end
 
 
 ---Remove the map marker of a home spot
--- @param string uniqueId vehicle unique id
-function HomeSpots.removeHotspot(uniqueId)
-    local hotspot = HomeSpots.hotspots[uniqueId]
+-- @param any key spot key
+function HomeSpots.removeHotspot(key)
+    local hotspot = HomeSpots.hotspots[key]
     if hotspot ~= nil then
         g_currentMission:removeMapHotspot(hotspot)
         hotspot:delete()
-        HomeSpots.hotspots[uniqueId] = nil
+        HomeSpots.hotspots[key] = nil
     end
 end
 
 
 ---Remove every map marker
 function HomeSpots.removeAllHotspots()
-    for uniqueId in pairs(HomeSpots.hotspots) do
-        HomeSpots.removeHotspot(uniqueId)
+    for key in pairs(HomeSpots.hotspots) do
+        HomeSpots.removeHotspot(key)
     end
 end
 
@@ -704,7 +944,7 @@ function HomeSpots.registerGlobalActionEvents(inputComponent, contextName)
 end
 
 
----Send everything home when the chosen hour starts, with a heads-up one hour before
+---Send everything home when the chosen hour starts (on the server), with a heads-up one hour before (for every player)
 function HomeSpots:onHourChanged()
     local hour = HomeSpots.store.autoTidyHour
     if hour == HomeSpotStore.AUTO_TIDY_OFF then
@@ -714,29 +954,36 @@ function HomeSpots:onHourChanged()
     local currentHour = g_currentMission.environment.currentHour
 
     if currentHour == hour then
-        HomeSpots.sendAllHome(true)
+        if g_currentMission:getIsServer() then
+            HomeSpots.sendAllHome()
+        end
     elseif currentHour == (hour - 1) % 24 and HomeSpots.store:getCount() > 0 then
         HomeSpots.notify(HomeSpots.getText("homeSpots_tidySoon", HomeSpotSettings.formatHour(hour)), FSBaseMission.INGAME_NOTIFICATION_INFO)
     end
 end
 
 
----Set up the mod for a savegame once its folder is known: helper node, saved spots, map markers and the daily send-home time
+---Set up the mod for a savegame once its folder is known: helper node, saved spots, map markers and the daily send-home time.
+-- A multiplayer client keeps what it holds: the server may have sent the spots before this ran.
 -- @param table mission mission
 function HomeSpots.onMissionLoaded(mission)
-    HomeSpots.store:reset()
+    HomeSpots.store:setIsServer(mission:getIsServer())
     HomeSpots.pendingMoves = nil
     HomeSpots.helperNode = createTransformGroup("homeSpotsHelper")
     g_messageCenter:subscribe(MessageType.HOUR_CHANGED, HomeSpots.onHourChanged, HomeSpots)
 
-    local savegameDirectory = mission.missionInfo ~= nil and mission.missionInfo.savegameDirectory or nil
-    if savegameDirectory ~= nil then
-        HomeSpots.store:loadFromDirectory(savegameDirectory)
-        Logging.info("Home Spots: loaded %d home spot(s)", HomeSpots.store:getCount())
+    if mission:getIsServer() then
+        HomeSpots.store:reset()
+
+        local savegameDirectory = mission.missionInfo ~= nil and mission.missionInfo.savegameDirectory or nil
+        if savegameDirectory ~= nil then
+            HomeSpots.store:loadFromDirectory(savegameDirectory)
+            Logging.info("Home Spots: loaded %d home spot(s)", HomeSpots.store:getCount())
+        end
     end
 
-    for uniqueId in pairs(HomeSpots.store:getAll()) do
-        HomeSpots.updateHotspot(uniqueId)
+    for key in pairs(HomeSpots.store:getAll()) do
+        HomeSpots.updateHotspot(key)
     end
 end
 
@@ -780,6 +1027,7 @@ end
 
 PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.appendedFunction(PlayerInputComponent.registerGlobalPlayerActionEvents, HomeSpots.registerGlobalActionEvents)
 Mission00.loadMission00Finished = Utils.appendedFunction(Mission00.loadMission00Finished, HomeSpots.onMissionLoaded)
+FSBaseMission.onConnectionFinishedLoading = Utils.appendedFunction(FSBaseMission.onConnectionFinishedLoading, HomeSpots.onClientJoined)
 FSCareerMissionInfo.saveToXMLFile = Utils.appendedFunction(FSCareerMissionInfo.saveToXMLFile, HomeSpots.onSaveCareer)
 InGameMenuSettingsFrame.onFrameOpen = Utils.appendedFunction(InGameMenuSettingsFrame.onFrameOpen, HomeSpots.onSettingsFrameOpen)
 FSBaseMission.delete = Utils.appendedFunction(FSBaseMission.delete, HomeSpots.onMissionDeleted)
