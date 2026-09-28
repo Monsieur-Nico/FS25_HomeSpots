@@ -6,6 +6,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.1.0.8] - 2026-09-28
+
 ### Added
 - Alt + U sends only what you sit in, or the tool or vehicle you look at, to its home spot. Sitting in it,
   you ride along; a tool looked at on foot is unhooked from whatever pulls it. The help panel shows
@@ -53,5 +55,6 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.7...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.8...HEAD
+[1.1.0.8]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.7...v1.1.0.8
 [1.1.0.7]: https://github.com/Monsieur-Nico/FS25_HomeSpots/releases/tag/v1.1.0.7
