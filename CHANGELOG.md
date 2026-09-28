@@ -6,6 +6,16 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.6.0.0] - 2026-09-28
+
+### Added
+- Park in a shed (Alt + N): gives what you sit in or look at a home spot in the nearest of your farm's sheds with
+  free room, under the roof, clear of walls, posts, pallets and other vehicles, facing out of the open side, then
+  sends it there. A tractor and its tools each get their own place, side by side.
+
+### Changed
+- A vehicle whose home spot runs into a building, a wall or a tree now stays where it is, like one whose spot is taken.
+
 ## [1.5.0.0] - 2026-09-28
 
 ### Added
@@ -114,7 +124,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.5.0.0...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.6.0.0...HEAD
+[1.6.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.5.0.0...v1.6.0.0
 [1.5.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.4.0.0...v1.5.0.0
 [1.4.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.3.0.0...v1.4.0.0
 [1.3.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.2.0.0...v1.3.0.0
