@@ -6,6 +6,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.3.0.0] - 2026-09-28
+
 ### Added
 - A Home Spots page in the in-game menu, listed after Settings. It shows every vehicle and tool of your farm
   that has a home spot, whether it is home, away or in use, and how far it is from its spot, with the
@@ -93,7 +95,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.2.0.0...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.3.0.0...HEAD
+[1.3.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.2.0.0...v1.3.0.0
 [1.2.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.9...v1.2.0.0
 [1.1.0.9]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.8...v1.1.0.9
 [1.1.0.8]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.7...v1.1.0.8
