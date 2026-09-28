@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.5.0.0</version>
+    <version>1.6.0.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -15,6 +15,7 @@ How to use:
 - Press Alt + H, on foot or in a vehicle, to send every vehicle and tool of your farm to its home spot.
 - Press Alt + U to send only the vehicle you sit in, or the tool you look at, to its home spot. Sitting in it, you go along. On the map, select a vehicle or tool and pick "Send home".
 - Press Alt + K to remove the home spot of what you sit in or look at.
+- Press Alt + N to park what you sit in or look at in your nearest shed: it gets a free place under the roof, clear of walls, pallets and other vehicles, facing out, as its new home spot.
 - The Home Spots page of the menu lists every vehicle and tool with a spot: home, away or in use, and how far from its spot, with a picture of the selected one. Send it home, or everything.
 - A house marker on the map shows each spot whose vehicle is away. In the settings you can show every spot instead (green when home, orange when away) or none.
 - In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
@@ -23,6 +24,10 @@ How to use:
 Vehicles driven by you, another player or a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
 Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
+
+Changelog 1.6.0.0:
+- New: Alt + N parks what you sit in or look at in your nearest shed, under the roof and clear of walls, pallets and other vehicles, and makes that its home spot.
+- A vehicle whose home spot runs into a building, a wall or a tree now stays where it is.
 
 Changelog 1.5.0.0:
 - New: optional realism fee in the settings, a price per km for each vehicle sent home.
@@ -38,6 +43,7 @@ So geht's:
 - Alt + H (zu Fuß oder im Fahrzeug) schickt alle Fahrzeuge und Geräte deines Hofs an ihren Stellplatz.
 - Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz. Sitzt du darin, fährst du mit. Auf der Karte: Fahrzeug oder Gerät auswählen und "Zum Stellplatz" wählen.
 - Alt + K entfernt den Stellplatz dessen, worin du sitzt oder was du anschaust.
+- Alt + N stellt ab, worin du sitzt oder was du anschaust, in deiner nächsten Halle: ein freier Platz unter dem Dach, ohne Wände, Paletten und andere Fahrzeuge, mit der Front zur Ausfahrt, wird sein neuer Stellplatz.
 - Die Seite "Stellplätze" im Menü listet alle Fahrzeuge und Geräte mit Stellplatz: daheim, unterwegs oder in Benutzung, und wie weit vom Platz entfernt, mit einem Bild des ausgewählten. Schicke es oder alle nach Hause.
 - Ein Haus-Symbol auf der Karte zeigt jeden Platz, dessen Fahrzeug unterwegs ist. In den Einstellungen kannst du stattdessen alle Plätze zeigen (grün daheim, orange unterwegs) oder keine.
 - Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
@@ -46,6 +52,10 @@ So geht's:
 Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
 
 Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
+
+Changelog 1.6.0.0:
+- Neu: Alt + N stellt ab, worin du sitzt oder was du anschaust, in deiner nächsten Halle, unter dem Dach und ohne Wände, Paletten und andere Fahrzeuge, und macht das zu seinem Stellplatz.
+- Ein Fahrzeug, dessen Stellplatz in ein Gebäude, eine Wand oder einen Baum ragt, bleibt jetzt stehen.
 
 Changelog 1.5.0.0:
 - Neu: optionale Realismus-Gebühr in den Einstellungen, ein Preis pro km für jedes heimgeschickte Fahrzeug.
@@ -61,6 +71,7 @@ Utilisation :
 - Appuyez sur Alt + H, à pied ou en véhicule, pour renvoyer tous les véhicules et outils de votre ferme à leur place.
 - Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place. Si vous êtes dedans, vous suivez. Sur la carte, sélectionnez un véhicule ou un outil et choisissez « Renvoyer à sa place ».
 - Alt + K efface la place de ce que vous conduisez ou regardez.
+- Alt + N gare ce que vous conduisez ou regardez dans votre hangar le plus proche : une place libre sous le toit, sans murs, palettes ni autres véhicules, tournée vers la sortie, devient sa nouvelle place.
 - La page « Places de rangement » du menu liste chaque véhicule et outil ayant une place : présent, absent ou en service, et à quelle distance de sa place, avec une image de celui sélectionné. Renvoyez-le, ou tout.
 - Une petite maison sur la carte montre chaque place dont le véhicule est absent. Dans les paramètres, vous pouvez afficher toutes les places (vert si présent, orange si absent) ou aucune.
 - Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
@@ -69,6 +80,10 @@ Utilisation :
 Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
 
 Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
+
+Changelog 1.6.0.0 :
+- Nouveau : Alt + N gare ce que vous conduisez ou regardez dans votre hangar le plus proche, sous le toit et sans murs, palettes ni autres véhicules, et en fait sa place.
+- Un véhicule dont la place touche un bâtiment, un mur ou un arbre reste désormais sur place.
 
 Changelog 1.5.0.0 :
 - Nouveau : frais réalistes en option dans les paramètres, un prix par km pour chaque véhicule renvoyé.
@@ -84,6 +99,7 @@ Changelog 1.5.0.0 :
         <sourceFile filename="scripts/HomeSpotArea.lua" />
         <sourceFile filename="scripts/HomeSpotStore.lua" />
         <sourceFile filename="scripts/HomeSpotFee.lua" />
+        <sourceFile filename="scripts/HomeSpotShed.lua" />
         <sourceFile filename="scripts/HomeSpotHotspot.lua" />
         <sourceFile filename="scripts/HomeSpotSettings.lua" />
         <sourceFile filename="scripts/HomeSpots.lua" />
@@ -97,6 +113,7 @@ Changelog 1.5.0.0 :
         <action name="HOMESPOTS_SEND_ONE" category="ONFOOT VEHICLE" />
         <action name="HOMESPOTS_SET" category="ONFOOT VEHICLE" />
         <action name="HOMESPOTS_CLEAR" category="ONFOOT VEHICLE" />
+        <action name="HOMESPOTS_FIND_SHED" category="ONFOOT VEHICLE" />
     </actions>
 
     <inputBinding>
@@ -111,6 +128,9 @@ Changelog 1.5.0.0 :
         </actionBinding>
         <actionBinding action="HOMESPOTS_CLEAR">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_k" />
+        </actionBinding>
+        <actionBinding action="HOMESPOTS_FIND_SHED">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_n" />
         </actionBinding>
     </inputBinding>
 
@@ -196,9 +216,34 @@ Changelog 1.5.0.0 :
             <fr>%d en cours d'utilisation laissé(s) sur place</fr>
         </text>
         <text name="homeSpots_blocked">
-            <en>Spot taken, left where they are: %s</en>
-            <de>Platz belegt, bleiben stehen: %s</de>
-            <fr>Place occupée, laissé(s) sur place : %s</fr>
+            <en>Spot taken or blocked, left where they are: %s</en>
+            <de>Platz belegt oder versperrt, bleiben stehen: %s</de>
+            <fr>Place occupée ou bloquée, laissé(s) sur place : %s</fr>
+        </text>
+        <text name="input_HOMESPOTS_FIND_SHED">
+            <en>Park in a shed</en>
+            <de>In einer Halle abstellen</de>
+            <fr>Garer dans un hangar</fr>
+        </text>
+        <text name="homeSpots_findShedFor">
+            <en>Park in a shed: %s</en>
+            <de>In einer Halle abstellen: %s</de>
+            <fr>Garer dans un hangar : %s</fr>
+        </text>
+        <text name="homeSpots_shedSaved">
+            <en>Home spot in a shed saved: %s</en>
+            <de>Stellplatz in einer Halle gespeichert: %s</de>
+            <fr>Place dans un hangar enregistrée : %s</fr>
+        </text>
+        <text name="homeSpots_noShedRoom">
+            <en>No free room in your sheds</en>
+            <de>Kein freier Platz in deinen Hallen</de>
+            <fr>Aucune place libre dans vos hangars</fr>
+        </text>
+        <text name="homeSpots_noShedRoomFor">
+            <en>No room left for: %s</en>
+            <de>Kein Platz mehr für: %s</de>
+            <fr>Plus de place pour : %s</fr>
         </text>
         <text name="homeSpots_none">
             <en>No home spots saved yet</en>

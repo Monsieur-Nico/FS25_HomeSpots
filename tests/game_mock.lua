@@ -126,28 +126,221 @@ function delete(handle)
     xmlHandles[handle] = nil
 end
 
--- Scene nodes: position and rotation only; directions use the y rotation
+-- Scene nodes: position and rotation only; directions use the y rotation.
+-- A node linked below another is placed relative to it, turned by the parent's y rotation.
 function game.newNode(x, z, yaw)
     table.insert(game.nodes, {t = {x, 0, z}, r = {0, yaw or 0, 0}})
     return #game.nodes
 end
 
+local function turn(x, z, yaw)
+    local cos, sin = math.cos(yaw), math.sin(yaw)
+    return x * cos + z * sin, -x * sin + z * cos
+end
+
 function createTransformGroup() return game.newNode(0, 0, 0) end
 function setTranslation(node, x, y, z) game.nodes[node].t = {x, y, z} end
 function setRotation(node, x, y, z) game.nodes[node].r = {x, y, z} end
-function getWorldTranslation(node) return unpack(game.nodes[node].t) end
-function getWorldRotation(node) return unpack(game.nodes[node].r) end
 function entityExists(node) return node ~= nil and node ~= 0 end
 function getParent(node) return game.parentOf[node] or 0 end
+function link(parent, child) game.nodes[child].parent = parent end
+
+function getWorldTranslation(node)
+    local t, parent = game.nodes[node].t, game.nodes[node].parent
+    if parent == nil then
+        return unpack(t)
+    end
+    local parentX, parentY, parentZ = getWorldTranslation(parent)
+    local x, z = turn(t[1], t[3], game.nodes[parent].r[2])
+    return parentX + x, parentY + t[2], parentZ + z
+end
+
+function getWorldRotation(node)
+    local r, parent = game.nodes[node].r, game.nodes[node].parent
+    if parent == nil then
+        return unpack(r)
+    end
+    local _, parentYaw, _ = getWorldRotation(parent)
+    return r[1], r[2] + parentYaw, r[3]
+end
+
+function setWorldTranslation(node, x, y, z)
+    local parent = assert(game.nodes[node].parent, "only used on a linked node")
+    local parentX, parentY, parentZ = getWorldTranslation(parent)
+    local _, parentYaw, _ = getWorldRotation(parent)
+    local localX, localZ = turn(x - parentX, z - parentZ, -parentYaw)
+    game.nodes[node].t = {localX, y - parentY, localZ}
+end
+
+function setWorldRotation(node, x, y, z)
+    local parent = assert(game.nodes[node].parent, "only used on a linked node")
+    local _, parentYaw, _ = getWorldRotation(parent)
+    game.nodes[node].r = {x, y - parentYaw, z}
+end
 
 function localDirectionToWorld(node, localX, _, localZ)
-    local yaw = game.nodes[node].r[2]
-    local cos, sin = math.cos(yaw), math.sin(yaw)
-    return localX * cos + localZ * sin, 0, -localX * sin + localZ * cos
+    local _, yaw, _ = getWorldRotation(node)
+    local x, z = turn(localX, localZ, yaw)
+    return x, 0, z
 end
 
 -- Physics: the collision hit node (if any) is reported first, then any extra hits
-CollisionFlag = {VEHICLE = 2}
+CollisionFlag = {TERRAIN = 1, VEHICLE = 2, BUILDING = 4, STATIC_OBJECT = 8, TREE = 16, DYNAMIC_OBJECT = 32}
+ClassIds = {SHAPE = "shape"}
+g_terrainNode = "terrain"
+game.solids = {}
+game.triggers = {}
+game.nodeNames = {}
+
+local function hasFlag(mask, flag)
+    return math.floor(mask / flag) % 2 == 1
+end
+
+-- The terrain is flat at height 0
+function getTerrainHeightAtWorldPos(terrainNode, _, _, _)
+    assert(terrainNode == g_terrainNode, "terrain node")
+    return 0
+end
+
+function getName(node) return game.nodeNames[node] or ("node" .. tostring(node)) end
+function getHasTrigger(node) return game.triggers[node] == true end
+function getHasClassId(node, classId)
+    assert(classId == ClassIds.SHAPE, "only shapes are asked for")
+    return true
+end
+
+---Add a solid box, lined up with the world axes, e.g. a wall, a roof or a pallet
+-- @return integer node its collision node
+function game.addSolid(name, flag, minX, minY, minZ, maxX, maxY, maxZ)
+    local node = game.newNode((minX + maxX) / 2, (minZ + maxZ) / 2)
+    game.nodeNames[node] = name
+    table.insert(game.solids, {node = node, flag = flag, min = {minX, minY, minZ}, max = {maxX, maxY, maxZ}})
+    return node
+end
+
+function game.removeSolid(node)
+    for index, solid in ipairs(game.solids) do
+        if solid.node == node then
+            table.remove(game.solids, index)
+            return
+        end
+    end
+end
+
+---Solids a query can hit: the boxes, and each vehicle as a box of its size, 3 m high
+local function getSolids(mask)
+    local solids = {}
+    for _, solid in ipairs(game.solids) do
+        if hasFlag(mask, solid.flag) then
+            table.insert(solids, solid)
+        end
+    end
+    if hasFlag(mask, CollisionFlag.VEHICLE) then
+        for _, vehicle in ipairs(game.vehicles) do
+            local x, y, z = getWorldTranslation(vehicle.rootNode)
+            local _, yaw, _ = getWorldRotation(vehicle.rootNode)
+            table.insert(solids, {node = vehicle.rootNode, center = {x, z}, yaw = yaw, min = {0, y, 0}, max = {0, y + 3, 0},
+                half = {vehicle.size.width / 2, vehicle.size.length / 2}})
+        end
+    end
+    return solids
+end
+
+local OVERLAP_EPSILON = 1e-6
+
+---Returns true if a box turned by yaw overlaps a solid on the ground (separating axis test) and in height
+local function getBoxOverlapsSolid(x, z, yaw, halfWidth, halfLength, minY, maxY, solid)
+    if maxY <= solid.min[2] + OVERLAP_EPSILON or minY >= solid.max[2] - OVERLAP_EPSILON then
+        return false
+    end
+
+    local solidX, solidZ, solidYaw, solidHalf
+    if solid.center ~= nil then
+        solidX, solidZ, solidYaw, solidHalf = solid.center[1], solid.center[2], solid.yaw, solid.half
+    else
+        solidX, solidZ, solidYaw = (solid.min[1] + solid.max[1]) / 2, (solid.min[3] + solid.max[3]) / 2, 0
+        solidHalf = {(solid.max[1] - solid.min[1]) / 2, (solid.max[3] - solid.min[3]) / 2}
+    end
+
+    local boxes = {{x, z, yaw, halfWidth, halfLength}, {solidX, solidZ, solidYaw, solidHalf[1], solidHalf[2]}}
+    for _, box in ipairs(boxes) do
+        local sideX, sideZ = turn(1, 0, box[3])
+        local dirX, dirZ = turn(0, 1, box[3])
+        for _, axis in ipairs({{sideX, sideZ}, {dirX, dirZ}}) do
+            local reach = 0
+            for _, other in ipairs(boxes) do
+                local otherSideX, otherSideZ = turn(1, 0, other[3])
+                local otherDirX, otherDirZ = turn(0, 1, other[3])
+                reach = reach + math.abs(otherSideX * axis[1] + otherSideZ * axis[2]) * other[4] + math.abs(otherDirX * axis[1] + otherDirZ * axis[2]) * other[5]
+            end
+            if math.abs((solidX - x) * axis[1] + (solidZ - z) * axis[2]) >= reach - OVERLAP_EPSILON then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+function overlapBox(x, y, z, rx, ry, rz, ex, ey, ez, callbackName, target, mask, includeDynamics, includeKinematics, includeStatics, exactTest)
+    assert(rx == 0 and rz == 0, "boxes stand upright")
+    assert(includeDynamics and includeKinematics and includeStatics and exactTest, "exact test of every kind of body")
+    game.numOverlapTests = (game.numOverlapTests or 0) + 1
+
+    local numHits = 0
+    for _, solid in ipairs(getSolids(mask)) do
+        if getBoxOverlapsSolid(x, z, ry, ex, ez, y - ey, y + ey, solid) then
+            numHits = numHits + 1
+            -- Returning false stops the query, true goes on to the next hit
+            if not target[callbackName](target, solid.node, 0) then
+                break
+            end
+        end
+    end
+
+    return numHits
+end
+
+---Distance along a ray to a box lined up with the world axes (slab test), or nil when it misses
+local function getRayDistance(origin, direction, minCorner, maxCorner)
+    local near, far = -math.huge, math.huge
+    for i = 1, 3 do
+        if math.abs(direction[i]) < 1e-9 then
+            if origin[i] < minCorner[i] or origin[i] > maxCorner[i] then
+                return nil
+            end
+        else
+            local t1 = (minCorner[i] - origin[i]) / direction[i]
+            local t2 = (maxCorner[i] - origin[i]) / direction[i]
+            near, far = math.max(near, math.min(t1, t2)), math.min(far, math.max(t1, t2))
+        end
+    end
+    if near > far or far < 0 then
+        return nil
+    end
+    return math.max(near, 0)
+end
+
+function raycastClosest(x, y, z, dirX, dirY, dirZ, maxDistance, callbackName, target, mask)
+    local closest, closestNode
+    if hasFlag(mask, CollisionFlag.TERRAIN) and dirY < 0 then
+        closest, closestNode = y / -dirY, "terrain"
+    end
+    for _, solid in ipairs(game.solids) do
+        if hasFlag(mask, solid.flag) then
+            local distance = getRayDistance({x, y, z}, {dirX, dirY, dirZ}, solid.min, solid.max)
+            if distance ~= nil and (closest == nil or distance < closest) then
+                closest, closestNode = distance, solid.node
+            end
+        end
+    end
+
+    if closest ~= nil and closest <= maxDistance then
+        target[callbackName](target, closestNode, x + dirX * closest, y + dirY * closest, z + dirZ * closest, closest, 0, 1, 0, 0, closestNode, true)
+        return 1
+    end
+    return 0
+end
 
 function raycastAll(_, _, _, _, _, _, maxDistance, callbackName, target, collisionMask)
     assert(collisionMask == CollisionFlag.VEHICLE, "look ray only checks vehicles")
@@ -192,6 +385,10 @@ local texts = {
     homeSpots_feeHigh = "High %s/km",
     homeSpots_feePaid = "cost %s",
     homeSpots_noMoney = "no money %s",
+    homeSpots_findShedFor = "shed: %s",
+    homeSpots_shedSaved = "in shed %s",
+    homeSpots_noShedRoom = "no shed room",
+    homeSpots_noShedRoomFor = "no room for %s",
 }
 
 g_i18n = {getText = function(_, name) return texts[name] or name end}
@@ -246,7 +443,7 @@ g_currentModDirectory = "/mods/FS25_HomeSpots/"
 g_currentModName = "FS25_HomeSpots"
 GS_PRIO_NORMAL = 2
 InputAction = {
-    HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D",
+    HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D", HOMESPOTS_FIND_SHED = "E",
     MENU_BACK = "MENU_BACK", MENU_ACCEPT = "MENU_ACCEPT", MENU_EXTRA_1 = "MENU_EXTRA_1",
     MENU_EXTRA_2 = "MENU_EXTRA_2", MENU_CANCEL = "MENU_CANCEL",
 }
@@ -531,7 +728,47 @@ g_localPlayer = {
     getLookRay = function() return lookRay[1], 1.7, lookRay[2], lookRay[3], lookRay[5] or -0.3, lookRay[4] end,
 }
 
+-- Buildings: a shed is a placeable with a shop category and a clear area over its floor
+game.placeables = {}
+
+---Add a shed of the farm: floor from (minX, minZ) to (maxX, maxZ), walls on every side but the one at minZ, a roof at roofY
+-- @return table placeable
+function game.newShed(name, farmId, minX, minZ, maxX, maxZ, roofY, categoryName)
+    local wall, building = 0.3, CollisionFlag.BUILDING
+    local placeable = {
+        name = name,
+        farmId = farmId,
+        rootNode = game.newNode((minX + maxX) / 2, (minZ + maxZ) / 2),
+        storeItem = {categoryNames = {categoryName or "SHEDS"}},
+        spec_clearAreas = {areas = {{start = game.newNode(minX, minZ), width = game.newNode(maxX, minZ), height = game.newNode(minX, maxZ)}}},
+        solids = {
+            game.addSolid(name .. " back wall", building, minX - wall, 0, maxZ, maxX + wall, roofY, maxZ + wall),
+            game.addSolid(name .. " left wall", building, minX - wall, 0, minZ, minX, roofY, maxZ),
+            game.addSolid(name .. " right wall", building, maxX, 0, minZ, maxX + wall, roofY, maxZ),
+            game.addSolid(name .. " roof", building, minX - wall, roofY, minZ, maxX + wall, roofY + wall, maxZ + wall),
+        },
+    }
+    function placeable:getOwnerFarmId() return self.farmId end
+    function placeable:getName() return self.name end
+
+    table.insert(game.placeables, placeable)
+    return placeable
+end
+
+function game.removeShed(placeable)
+    for _, node in ipairs(placeable.solids) do
+        game.removeSolid(node)
+    end
+    for index, other in ipairs(game.placeables) do
+        if other == placeable then
+            table.remove(game.placeables, index)
+            return
+        end
+    end
+end
+
 g_currentMission = {
+    placeableSystem = {placeables = game.placeables},
     vehicleSystem = {
         vehicles = game.vehicles,
         getVehicleByUniqueId = function(_, uniqueId)

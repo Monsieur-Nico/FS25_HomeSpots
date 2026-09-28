@@ -16,8 +16,10 @@ spot. You can also let the farm tidy itself up at a set time every day.
   On foot, look at a single tool or vehicle to save just that one.
 - **Knows what you are looking at.** The help panel names the machine a key will act on, for example
   "Set home spot: Horsch Finer 6 SL".
-- **Never stacks vehicles.** If something else is parked on a spot, that vehicle stays where it is and you are told
-  which one.
+- **Never stacks vehicles.** If something else is parked on a spot, or a building or tree now stands in it, that
+  vehicle stays where it is and you are told which one.
+- **Park in a shed.** One key finds a free place under the roof of your nearest shed, clear of walls, posts, pallets
+  and other vehicles, saves it as the home spot and sends the vehicle there, facing out of the open side.
 - **Leaves things alone.** Vehicles you or a worker are driving stay put, and anything already on its spot is not moved.
 - **Map markers.** An orange house on the map marks every spot whose vehicle is away, so a tidy farm shows none.
   In the settings you can show every spot instead, green while its vehicle is home, or turn markers off.
@@ -44,6 +46,7 @@ spot. You can also let the farm tidy itself up at a set time every day.
 | Alt + K | Remove the home spot of what you sit in or look at |
 | Alt + H | Send every vehicle and tool home |
 | Alt + U | Send only what you sit in or look at home |
+| Alt + N | Park what you sit in or look at in a shed and make that its home spot |
 
 On the map, select a vehicle or tool that is away from its spot and pick **Send home**.
 
@@ -72,6 +75,7 @@ All three are saved with the savegame.
   Alt + H and the map send home only your own farm's vehicles, and only the host or a server admin can
   change the Home Spots settings.
 - No other mods are needed.
+- Parking Spaces and other decorative parking lines work as they are: park on a space and press Alt + J.
 
 ## Reporting problems
 

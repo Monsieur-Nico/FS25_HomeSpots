@@ -237,6 +237,24 @@ return function(test, assertEquals, network)
         playerGame.currentVehicle = nil
     end)
 
+    test("multiplayer: a player parks in their own farm's shed and every player sees the spot", function()
+        local shed = hostGame.newShed("Shed", 2, 200, 0, 220, 10, 5)
+        playerGame.currentVehicle = playerCopies[combine]
+        playerMod:onFindShedInput()
+        step()
+
+        assertEquals(string.format("%.1f", getX(combine)), "201.8", "host moved the combine into the shed")
+        assert(playerMod.store:has(playerCopies[combine]), "player sees the spot")
+        assert(admin.HomeSpots.store:has(adminCopies[combine]), "other players see the spot")
+        assertEquals(playerGame.lastNotification(), "sent: Claas", "player is told")
+
+        playerMod:onClearHomeInput()
+        step()
+        playerGame.currentVehicle = nil
+        hostGame.removeShed(shed)
+        hostGame.place(combine, 60, 0)
+    end)
+
     test("multiplayer: only the host writes homeSpots.xml", function()
         playerMod.onSaveCareer({savegameDirectory = "/mp"})
         assertEquals(next(playerGame.files), nil, "nothing saved on the player's machine")

@@ -9,6 +9,7 @@ HomeSpots.ACTION_SET = 1
 HomeSpots.ACTION_CLEAR = 2
 HomeSpots.ACTION_SEND = 3
 HomeSpots.ACTION_SEND_ALL = 4
+HomeSpots.ACTION_FIND_SHED = 5
 
 -- What the player is told afterwards
 HomeSpots.REPORT_SAVED = 1
@@ -16,6 +17,8 @@ HomeSpots.REPORT_CLEARED = 2
 HomeSpots.REPORT_SENT = 3
 HomeSpots.REPORT_NOTHING = 4
 HomeSpots.REPORT_NO_MONEY = 5
+HomeSpots.REPORT_SHED_SAVED = 6
+HomeSpots.REPORT_NO_SHED = 7
 
 -- A vehicle this close to its home spot (m, and heading in rad) counts as already home and is not moved
 HomeSpots.AT_HOME_DISTANCE = 1.0
@@ -288,6 +291,12 @@ function HomeSpots:onSendTargetHomeInput()
 end
 
 
+---Action: give what the player sits in or looks at a home spot in a shed, and send it there
+function HomeSpots:onFindShedInput()
+    HomeSpots.request(HomeSpots.ACTION_FIND_SHED, HomeSpots.getTargetVehicles())
+end
+
+
 ---Carry out an action: right away on the server (and in single player), or by asking the server from a multiplayer client
 -- @param integer action HomeSpots.ACTION_*
 -- @param table vehicles vehicles the action is for (empty for send all)
@@ -332,6 +341,8 @@ function HomeSpots.runRequest(action, vehicles, farmId, connection)
         HomeSpots.setSpots(farmVehicles, connection)
     elseif action == HomeSpots.ACTION_CLEAR then
         HomeSpots.clearSpots(farmVehicles, connection)
+    elseif action == HomeSpots.ACTION_FIND_SHED then
+        HomeSpots.parkInShed(farmVehicles, options)
     end
 end
 
@@ -352,6 +363,37 @@ function HomeSpots.setSpots(vehicles, connection)
         report.vehicles = vehicles
         HomeSpots.deliverReport(report, connection)
     end
+end
+
+
+---Server: give vehicles a home spot in the nearest shed with room, tell every player, then send them there
+-- @param table vehicles vehicles of the farm of the player who asked
+-- @param table options send options, see HomeSpots.sendHome
+function HomeSpots.parkInShed(vehicles, options)
+    if #vehicles == 0 then
+        return
+    end
+
+    local places = HomeSpotShed.findPlaces(vehicles, options.farmId)
+    if #places == 0 then
+        HomeSpots.deliverReport(HomeSpots.newReport(HomeSpots.REPORT_NO_SHED), options.connection)
+        return
+    end
+
+    local isPlaced = {}
+    for _, place in ipairs(places) do
+        HomeSpots.store:setByKey(HomeSpots.store:getKey(place.vehicle), place.components)
+        isPlaced[place.vehicle] = true
+    end
+    HomeSpots.onSpotsChanged(places)
+
+    local report = HomeSpots.newReport(HomeSpots.REPORT_SHED_SAVED)
+    for _, vehicle in ipairs(vehicles) do
+        table.insert(isPlaced[vehicle] and report.vehicles or report.blocked, vehicle)
+    end
+    HomeSpots.deliverReport(report, options.connection)
+
+    HomeSpots.sendHome(report.vehicles, options)
 end
 
 
@@ -567,7 +609,7 @@ end
 
 ---Server: send vehicles to their home spots.
 -- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
--- Tools without a home spot are unhooked and left where they are.
+-- Tools without a home spot are unhooked and left where they are. A vehicle whose spot is taken, or runs into a wall, stays put.
 -- With the realism fee on, a player's own request goes ahead only if their farm can pay for it.
 -- @param table vehicles vehicles to send home, those without a home spot are skipped
 -- @param table options isAutomatic (daily send-home time), isTargeted (the player picked these vehicles, the report names them),
@@ -620,7 +662,16 @@ function HomeSpots.sendHome(vehicles, options)
         end
     end
 
+    local walled
+    candidates, walled = HomeSpotShed.splitWalledSpots(candidates)
+    for _, move in ipairs(walled) do
+        table.insert(staticAreas, move.currentArea)
+    end
+
     local accepted, blocked = HomeSpots.resolveBlockedSpots(candidates, staticAreas)
+    for _, move in ipairs(walled) do
+        table.insert(blocked, move)
+    end
 
     HomeSpotFee.priceMoves(accepted, HomeSpots.store.feeLevel)
     if not options.isAutomatic and options.farmId ~= nil then
@@ -791,6 +842,16 @@ function HomeSpots.showReport(report)
     elseif report.kind == HomeSpots.REPORT_NOTHING then
         HomeSpots.notify(HomeSpots.getText("homeSpots_none"))
         return
+    elseif report.kind == HomeSpots.REPORT_NO_SHED then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_noShedRoom"), FSBaseMission.INGAME_NOTIFICATION_INFO)
+        return
+    elseif report.kind == HomeSpots.REPORT_SHED_SAVED then
+        local text = HomeSpots.getText("homeSpots_shedSaved", names(report.vehicles))
+        if #report.blocked > 0 then
+            text = text .. ". " .. HomeSpots.getText("homeSpots_noShedRoomFor", names(report.blocked))
+        end
+        HomeSpots.notify(text, #report.blocked > 0 and FSBaseMission.INGAME_NOTIFICATION_INFO or nil)
+        return
     end
 
     local fee = report.fees[g_currentMission:getFarmId()]
@@ -878,7 +939,7 @@ end
 
 
 ---Keep the help entries in line with what the player sits in or looks at:
--- "Set" only shows with a target and reads "Update" once it has a home spot,
+-- "Set" and "Park in a shed" only show with a target, "Set" reads "Update" once it has a home spot,
 -- "Send home" and "Remove" only show when the target has a home spot.
 -- The game keeps separate keys on foot and in a vehicle, so every context is kept up to date.
 function HomeSpots.updateActionEvents()
@@ -900,8 +961,9 @@ function HomeSpots.updateActionEvents()
     local spotNames = HomeSpots.getVehicleNames(vehiclesWithSpot, HomeSpots.MAX_NAMES_IN_PROMPT)
     local clearText = HomeSpots.getText("homeSpots_clearFor", spotNames)
     local sendText = HomeSpots.getText("homeSpots_sendHomeFor", spotNames)
+    local shedText = HomeSpots.getText("homeSpots_findShedFor", HomeSpots.getVehicleNames(vehicles, HomeSpots.MAX_NAMES_IN_PROMPT))
 
-    local state = table.concat({tostring(hasTarget), setText, clearText, sendText}, "|")
+    local state = table.concat({tostring(hasTarget), setText, clearText, sendText, shedText}, "|")
     if state == HomeSpots.shownActionState then
         return
     end
@@ -911,6 +973,7 @@ function HomeSpots.updateActionEvents()
         HomeSpots.setActionEventState(eventIds.HOMESPOTS_SET, hasTarget, setText)
         HomeSpots.setActionEventState(eventIds.HOMESPOTS_CLEAR, hasSpot, clearText)
         HomeSpots.setActionEventState(eventIds.HOMESPOTS_SEND_ONE, hasSpot, sendText)
+        HomeSpots.setActionEventState(eventIds.HOMESPOTS_FIND_SHED, hasTarget, shedText)
     end
 end
 
@@ -980,6 +1043,7 @@ function HomeSpots.registerGlobalActionEvents(inputComponent, contextName)
     HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_SEND_ONE", HomeSpots.onSendTargetHomeInput)
     HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_SET", HomeSpots.onSetHomeInput)
     HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_CLEAR", HomeSpots.onClearHomeInput)
+    HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_FIND_SHED", HomeSpots.onFindShedInput)
 
     HomeSpots.shownActionState = nil
 end
@@ -1011,6 +1075,7 @@ function HomeSpots.onMissionLoaded(mission)
     HomeSpots.store:setIsServer(mission:getIsServer())
     HomeSpots.pendingMoves = nil
     HomeSpots.helperNode = createTransformGroup("homeSpotsHelper")
+    HomeSpotShed.createNodes()
     g_messageCenter:subscribe(MessageType.HOUR_CHANGED, HomeSpots.onHourChanged, HomeSpots)
 
     if mission:getIsServer() then
@@ -1063,6 +1128,7 @@ function HomeSpots.onMissionDeleted()
         delete(HomeSpots.helperNode)
         HomeSpots.helperNode = nil
     end
+    HomeSpotShed.deleteNodes()
 end
 
 
