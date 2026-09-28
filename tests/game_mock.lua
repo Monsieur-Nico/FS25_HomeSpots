@@ -6,6 +6,7 @@ local game = {
     notifications = {},
     subscriptions = {},
     actionEvents = {},
+    contextEvents = {},
     hotspotsOnMap = {},
     nodeToVehicle = {},
     parentOf = {},
@@ -114,6 +115,7 @@ local texts = {
     homeSpots_allHome = "all home",
     homeSpots_sendHomeFor = "send: %s",
     homeSpots_tidySoon = "soon %s",
+    homeSpots_mapSendHome = "Send home",
     homeSpots_sentHomeFor = "sent: %s",
     homeSpots_alreadyHomeFor = "home: %s",
 }
@@ -128,8 +130,42 @@ Logging = {
 
 FSBaseMission = {INGAME_NOTIFICATION_OK = 1, INGAME_NOTIFICATION_INFO = 2}
 PlayerInputComponent, Mission00, FSCareerMissionInfo, InGameMenuSettingsFrame = {}, {}, {}, {}
+
+-- Map menu: selecting an item sets the frame's actions and lists the active ones,
+-- by title when an action has one, else by text name (as the game does for other mods' actions)
+InGameMenuMapFrame = {}
+function InGameMenuMapFrame:setMapSelectionItem(hotspot)
+    self.currentHotspot = hotspot
+    self.contextButtonList:reloadData()
+end
+function InGameMenuMapFrame.newFrame(contextActions)
+    local frame = setmetatable({contextActions = contextActions}, {__index = InGameMenuMapFrame})
+    frame.contextButtonList = {reloadData = function()
+        frame.shownActions = {}
+        for _, action in ipairs(frame.contextActions) do
+            if action.isActive then
+                table.insert(frame.shownActions, action.title or action.text)
+            end
+        end
+    end}
+    return frame
+end
+InGameMenuMapUtil = {getHotspotVehicle = function(hotspot) return hotspot.vehicle end}
 Utils = {
-    appendedFunction = function(_, appended) return appended end,
+    appendedFunction = function(original, appended)
+        return function(...)
+            if original ~= nil then
+                original(...)
+            end
+            appended(...)
+        end
+    end,
+    prependedFunction = function(original, prepended)
+        return function(...)
+            prepended(...)
+            return original(...)
+        end
+    end,
     getFilename = function(filename, directory) return directory .. filename end,
 }
 g_currentModDirectory = "/mods/FS25_HomeSpots/"
@@ -147,21 +183,49 @@ function MapHotspot.getClickCircle(radius) return {radius = radius} end
 function MapHotspot:getIsVisible() return self.visible end
 function MapHotspot:setWorldPosition(x, z) self.x, self.z = x, z end
 function MapHotspot:delete() self.deleted = true end
-Overlay = {new = function(filename) return {filename = filename} end}
+Overlay = {}
+function Overlay.new(filename)
+    local overlay = {filename = filename}
+    function overlay:setImage(newFilename) self.filename = newFilename end
+    return overlay
+end
 
 g_messageCenter = {
     subscribe = function(_, messageType, callback, target) game.subscriptions[messageType] = {callback, target} end,
     unsubscribeAll = function() game.subscriptions = {} end,
 }
 
--- FS25 action event ids are strings
-local nextActionEventId = 1
+-- Like FS25, an event id is built from the action and the target object, so the same action and target
+-- registered in two input contexts share one id: the id then only reaches the event registered last.
+-- game.contextEvents keeps each context's own events, which is what the help panel of that context shows.
 g_inputBinding = {
-    registerActionEvent = function(_, action)
-        local id = "event" .. nextActionEventId
-        nextActionEventId = nextActionEventId + 1
-        game.actionEvents[id] = {action = action, active = true}
+    registerActionEvent = function(_, action, target)
+        local context = game.inputContext or "PLAYER"
+        game.contextEvents[context] = game.contextEvents[context] or {}
+        for _, event in ipairs(game.contextEvents[context]) do
+            if event.action == action and event.target == target then
+                return false, ""
+            end
+        end
+
+        local id = action .. "|" .. tostring(target) .. "|1"
+        local event = {action = action, target = target, context = context, active = true}
+        table.insert(game.contextEvents[context], event)
+        game.actionEvents[id] = event
         return true, id
+    end,
+    removeActionEvent = function(_, id)
+        local event = game.actionEvents[id]
+        if event == nil then
+            return
+        end
+        for index, contextEvent in ipairs(game.contextEvents[event.context]) do
+            if contextEvent == event then
+                table.remove(game.contextEvents[event.context], index)
+                break
+            end
+        end
+        game.actionEvents[id] = nil
     end,
     setActionEventText = function(_, id, text) game.actionEvents[id].text = text end,
     setActionEventTextVisibility = function(_, id, visible) game.actionEvents[id].visible = visible end,

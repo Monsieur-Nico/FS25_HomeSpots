@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 MOD_NAME="FS25_HomeSpots"
-MOD_FILES=(modDesc.xml icon_homeSpots.dds icon_homeSpotMarker.dds scripts)
+MOD_FILES=(modDesc.xml icon_homeSpots.dds icon_homeSpotHome.dds icon_homeSpotAway.dds scripts)
 
 version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' modDesc.xml | head -n 1)
 if [[ -z "$version" ]]; then

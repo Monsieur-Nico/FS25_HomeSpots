@@ -8,12 +8,14 @@ globals = {
     "HomeSpots",
     "HomeSpotArea",
     "HomeSpotHotspot",
+    "HomeSpotMapMenu",
     "HomeSpotSettings",
     "HomeSpotStore",
 
     -- Base game classes the mod hooks into
     "FSBaseMission",
     "FSCareerMissionInfo",
+    "InGameMenuMapFrame",
     "InGameMenuSettingsFrame",
     "Mission00",
     "PlayerInputComponent",
@@ -25,6 +27,7 @@ read_globals = {
     "Class",
     "CollisionFlag",
     "GS_PRIO_NORMAL",
+    "InGameMenuMapUtil",
     "InputAction",
     "Logging",
     "MapHotspot",

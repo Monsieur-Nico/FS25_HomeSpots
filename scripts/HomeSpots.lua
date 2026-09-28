@@ -13,13 +13,19 @@ HomeSpots.LOOK_DISTANCE = 6
 HomeSpots.LOOK_STEP = 0.25
 HomeSpots.LOOK_MARGIN = 0.2
 HomeSpots.DEFAULT_VEHICLE_HEIGHT = 4
+-- Key for help entries registered without an input context name
+HomeSpots.DEFAULT_INPUT_CONTEXT = "default"
 
 HomeSpots.store = HomeSpotStore.new()
 HomeSpots.hotspots = {}
 HomeSpots.helperNode = nil
 HomeSpots.pendingMoves = nil
 HomeSpots.pendingReport = nil
+-- Action event ids per input context (on foot, in a vehicle), each a table of action name to event id
 HomeSpots.actionEventIds = {}
+-- The object the keys of each input context are registered for. The game builds an event id from the action and
+-- this object, so one shared object would give both contexts the same ids and the on-foot entries could no longer be updated.
+HomeSpots.inputTargets = {}
 HomeSpots.shownActionState = nil
 
 
@@ -141,6 +147,7 @@ end
 
 ---Returns the first vehicle of the player's farm whose outline (footprint and height) the look ray passes through.
 -- Works from vehicle sizes alone, so it also finds tools whose collisions the look ray slips past.
+-- A vehicle whose outline the player stands in is skipped: the ray starts inside it, so it would match wherever the player looks.
 -- @param float x, y, z look ray start
 -- @param float dirX, dirY, dirZ look ray direction (unit length)
 -- @return table vehicle vehicle or nil
@@ -157,13 +164,16 @@ function HomeSpots.getVehicleAlongLookRay(x, y, z, dirX, dirY, dirZ)
             if dx * dx + dz * dz <= reach * reach then
                 local _, rootY, _ = getWorldTranslation(vehicle.rootNode)
                 local height = vehicle.size.height or HomeSpots.DEFAULT_VEHICLE_HEIGHT
-
-                table.insert(nearby, {
+                local candidate = {
                     vehicle = vehicle,
                     area = area,
                     minY = rootY - HomeSpots.LOOK_MARGIN - 1,
                     maxY = rootY + height + HomeSpots.LOOK_MARGIN
-                })
+                }
+
+                if not HomeSpots.getIsInOutline(candidate, x, y, z) then
+                    table.insert(nearby, candidate)
+                end
             end
         end
     end
@@ -176,14 +186,22 @@ function HomeSpots.getVehicleAlongLookRay(x, y, z, dirX, dirY, dirZ)
         local pointX, pointY, pointZ = x + dirX * distance, y + dirY * distance, z + dirZ * distance
 
         for _, candidate in ipairs(nearby) do
-            if pointY >= candidate.minY and pointY <= candidate.maxY
-                and HomeSpotArea.getContainsPoint(candidate.area, pointX, pointZ, HomeSpots.LOOK_MARGIN) then
+            if HomeSpots.getIsInOutline(candidate, pointX, pointY, pointZ) then
                 return candidate.vehicle
             end
         end
     end
 
     return nil
+end
+
+
+---Returns true if a point lies inside a vehicle's outline: its footprint, widened by LOOK_MARGIN, between minY and maxY
+-- @param table candidate outline (area, minY, maxY)
+-- @param float x, y, z world position
+-- @return boolean isInside
+function HomeSpots.getIsInOutline(candidate, x, y, z)
+    return y >= candidate.minY and y <= candidate.maxY and HomeSpotArea.getContainsPoint(candidate.area, x, z, HomeSpots.LOOK_MARGIN)
 end
 
 
@@ -256,6 +274,34 @@ function HomeSpots.getHomeArea(vehicle, components)
     setRotation(HomeSpots.helperNode, rotation[1], rotation[2], rotation[3])
 
     return HomeSpotArea.newFromNode(vehicle.size, HomeSpots.helperNode)
+end
+
+
+---Compare where a vehicle stands with its home spot
+-- @param table vehicle vehicle
+-- @param table components saved component positions
+-- @return boolean isAtHome true within AT_HOME_DISTANCE and AT_HOME_ANGLE of the spot
+-- @return table homeArea footprint at the home spot
+-- @return table currentArea footprint where the vehicle stands now
+function HomeSpots.getHomePose(vehicle, components)
+    local homeArea = HomeSpots.getHomeArea(vehicle, components)
+    local currentArea = HomeSpotArea.newFromNode(vehicle.size, vehicle.rootNode)
+    local isAtHome = HomeSpotArea.getIsSamePose(homeArea, currentArea, HomeSpots.AT_HOME_DISTANCE, HomeSpots.AT_HOME_ANGLE)
+
+    return isAtHome, homeArea, currentArea
+end
+
+
+---Returns true if the vehicle has a home spot and stands on it
+-- @param table vehicle vehicle
+-- @return boolean isAtHome
+function HomeSpots.getIsAtHome(vehicle)
+    local components = HomeSpots.store:get(vehicle)
+    if components == nil or HomeSpots.helperNode == nil or #components ~= #vehicle.components then
+        return false
+    end
+
+    return (HomeSpots.getHomePose(vehicle, components))
 end
 
 
@@ -343,10 +389,9 @@ function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
             if HomeSpots.getIsBusy(vehicle, isTargeted) then
                 numBusy = numBusy + 1
             elseif #components == #vehicle.components then
-                local homeArea = HomeSpots.getHomeArea(vehicle, components)
-                local currentArea = HomeSpotArea.newFromNode(vehicle.size, vehicle.rootNode)
+                local isAtHome, homeArea, currentArea = HomeSpots.getHomePose(vehicle, components)
 
-                if HomeSpotArea.getIsSamePose(homeArea, currentArea, HomeSpots.AT_HOME_DISTANCE, HomeSpots.AT_HOME_ANGLE) then
+                if isAtHome then
                     table.insert(atHome, vehicle)
                 else
                     table.insert(candidates, {
@@ -554,11 +599,9 @@ end
 ---Keep the help entries in line with what the player sits in or looks at:
 -- "Set" only shows with a target and reads "Update" once it has a home spot,
 -- "Send home" and "Remove" only show when the target has a home spot.
+-- The game keeps separate keys on foot and in a vehicle, so every context is kept up to date.
 function HomeSpots.updateActionEvents()
-    local setEventId = HomeSpots.actionEventIds.HOMESPOTS_SET
-    local clearEventId = HomeSpots.actionEventIds.HOMESPOTS_CLEAR
-    local sendEventId = HomeSpots.actionEventIds.HOMESPOTS_SEND_ONE
-    if setEventId == nil or clearEventId == nil or sendEventId == nil then
+    if next(HomeSpots.actionEventIds) == nil then
         return
     end
 
@@ -577,18 +620,29 @@ function HomeSpots.updateActionEvents()
     local clearText = HomeSpots.getText("homeSpots_clearFor", spotNames)
     local sendText = HomeSpots.getText("homeSpots_sendHomeFor", spotNames)
 
-    local state = table.concat({tostring(setEventId), tostring(hasTarget), setText, clearText, sendText}, "|")
+    local state = table.concat({tostring(hasTarget), setText, clearText, sendText}, "|")
     if state == HomeSpots.shownActionState then
         return
     end
 
     HomeSpots.shownActionState = state
-    g_inputBinding:setActionEventActive(setEventId, hasTarget)
-    g_inputBinding:setActionEventText(setEventId, setText)
-    g_inputBinding:setActionEventText(clearEventId, clearText)
-    g_inputBinding:setActionEventActive(clearEventId, hasSpot)
-    g_inputBinding:setActionEventText(sendEventId, sendText)
-    g_inputBinding:setActionEventActive(sendEventId, hasSpot)
+    for _, eventIds in pairs(HomeSpots.actionEventIds) do
+        HomeSpots.setActionEventState(eventIds.HOMESPOTS_SET, hasTarget, setText)
+        HomeSpots.setActionEventState(eventIds.HOMESPOTS_CLEAR, hasSpot, clearText)
+        HomeSpots.setActionEventState(eventIds.HOMESPOTS_SEND_ONE, hasSpot, sendText)
+    end
+end
+
+
+---Show or hide one help entry and set its text
+-- @param string eventId action event id, or nil when it was not registered
+-- @param boolean isActive whether the entry is shown
+-- @param string text help text
+function HomeSpots.setActionEventState(eventId, isActive, text)
+    if eventId ~= nil then
+        g_inputBinding:setActionEventText(eventId, text)
+        g_inputBinding:setActionEventActive(eventId, isActive)
+    end
 end
 
 
@@ -601,28 +655,50 @@ end
 
 
 ---Register an action event and show it in the help panel at the top left of the screen
+-- @param table target object the key is registered for, one per input context
+-- @param table eventIds event ids of the input context being registered, the new id is added to it
 -- @param string actionName input action name
 -- @param function callback callback
-function HomeSpots.registerActionEvent(actionName, callback)
-    local _, eventId = g_inputBinding:registerActionEvent(InputAction[actionName], HomeSpots, callback, false, true, false, true)
-    HomeSpots.actionEventIds[actionName] = eventId
+function HomeSpots.registerActionEvent(target, eventIds, actionName, callback)
+    local _, eventId = g_inputBinding:registerActionEvent(InputAction[actionName], target, callback, false, true, false, true)
+    if eventId == nil or eventId == "" then
+        return
+    end
 
-    if eventId ~= nil then
-        g_inputBinding:setActionEventText(eventId, g_i18n:getText("input_" .. actionName))
-        g_inputBinding:setActionEventTextVisibility(eventId, true)
-        g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_NORMAL)
+    eventIds[actionName] = eventId
+    g_inputBinding:setActionEventText(eventId, g_i18n:getText("input_" .. actionName))
+    g_inputBinding:setActionEventTextVisibility(eventId, true)
+    g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_NORMAL)
+end
+
+
+---Remove keys registered earlier in the same input context, so re-registering never leaves a second copy behind
+-- @param table eventIds action name to event id, or nil
+function HomeSpots.removeActionEvents(eventIds)
+    for _, eventId in pairs(eventIds or {}) do
+        g_inputBinding:removeActionEvent(eventId)
     end
 end
 
 
----Register all of the mod's keys. Called by the game on foot and in a vehicle, in the middle of registering the player's own keys.
+---Register all of the mod's keys. Called by the game on foot and in a vehicle, in the middle of registering the player's own keys,
+-- and again whenever those are refreshed (getting in or out, hitching or unhitching a tool).
 -- @param table inputComponent player input component
--- @param string contextName input context name
+-- @param string contextName input context name, nil on foot
 function HomeSpots.registerGlobalActionEvents(inputComponent, contextName)
-    HomeSpots.registerActionEvent("HOMESPOTS_SEND_ALL", HomeSpots.onSendAllHomeInput)
-    HomeSpots.registerActionEvent("HOMESPOTS_SEND_ONE", HomeSpots.onSendTargetHomeInput)
-    HomeSpots.registerActionEvent("HOMESPOTS_SET", HomeSpots.onSetHomeInput)
-    HomeSpots.registerActionEvent("HOMESPOTS_CLEAR", HomeSpots.onClearHomeInput)
+    local contextKey = contextName or HomeSpots.DEFAULT_INPUT_CONTEXT
+    HomeSpots.removeActionEvents(HomeSpots.actionEventIds[contextKey])
+
+    local target = HomeSpots.inputTargets[contextKey] or {}
+    HomeSpots.inputTargets[contextKey] = target
+
+    local eventIds = {}
+    HomeSpots.actionEventIds[contextKey] = eventIds
+
+    HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_SEND_ALL", HomeSpots.onSendAllHomeInput)
+    HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_SEND_ONE", HomeSpots.onSendTargetHomeInput)
+    HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_SET", HomeSpots.onSetHomeInput)
+    HomeSpots.registerActionEvent(target, eventIds, "HOMESPOTS_CLEAR", HomeSpots.onClearHomeInput)
 
     HomeSpots.shownActionState = nil
 end
@@ -691,6 +767,9 @@ function HomeSpots.onMissionDeleted()
     HomeSpots.store:reset()
     HomeSpots.pendingMoves = nil
     HomeSpots.pendingReport = nil
+    HomeSpots.actionEventIds = {}
+    HomeSpots.inputTargets = {}
+    HomeSpots.shownActionState = nil
 
     if HomeSpots.helperNode ~= nil then
         delete(HomeSpots.helperNode)

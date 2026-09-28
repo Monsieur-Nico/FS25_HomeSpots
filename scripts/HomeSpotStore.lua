@@ -8,6 +8,11 @@ HomeSpotStore.FILENAME = "homeSpots.xml"
 HomeSpotStore.XML_ROOT = "homeSpots"
 HomeSpotStore.AUTO_TIDY_OFF = -1
 
+-- How map markers show: only on spots whose vehicle is away, always (coloured home or away), or not at all
+HomeSpotStore.MARKERS_AWAY = 1
+HomeSpotStore.MARKERS_ALWAYS = 2
+HomeSpotStore.MARKERS_OFF = 3
+
 
 ---Parse three space separated numbers, e.g. "12.5 80.1 -3.2"
 -- @param string text text
@@ -35,8 +40,7 @@ end
 function HomeSpotStore.new()
     local self = setmetatable({}, HomeSpotStore_mt)
 
-    self.spots = {}
-    self.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
+    self:reset()
 
     return self
 end
@@ -46,6 +50,7 @@ end
 function HomeSpotStore:reset()
     self.spots = {}
     self.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
+    self.markerMode = HomeSpotStore.MARKERS_AWAY
 end
 
 
@@ -130,6 +135,11 @@ function HomeSpotStore:loadFromDirectory(directory)
 
     self.autoTidyHour = getXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#autoTidyHour") or HomeSpotStore.AUTO_TIDY_OFF
 
+    local markerMode = getXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#markers")
+    if markerMode == HomeSpotStore.MARKERS_ALWAYS or markerMode == HomeSpotStore.MARKERS_OFF then
+        self.markerMode = markerMode
+    end
+
     local i = 0
     while true do
         local key = string.format("%s.vehicle(%d)", HomeSpotStore.XML_ROOT, i)
@@ -179,6 +189,7 @@ function HomeSpotStore:saveToDirectory(directory, vehicleSystem)
     end
 
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#autoTidyHour", self.autoTidyHour)
+    setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#markers", self.markerMode)
 
     local i = 0
     for uniqueId, components in pairs(self.spots) do

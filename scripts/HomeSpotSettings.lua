@@ -1,6 +1,5 @@
----Adds the "send vehicles home automatically" option to the in-game settings page
+---Adds the Home Spots section to the in-game settings page: the daily send-home time and how map markers show
 HomeSpotSettings = {}
-HomeSpotSettings.optionElement = nil
 HomeSpotSettings.injectedLayout = nil
 
 
@@ -9,19 +8,6 @@ HomeSpotSettings.injectedLayout = nil
 -- @return string text
 function HomeSpotSettings.formatHour(hour)
     return string.format("%02d:00", hour)
-end
-
-
----Returns the texts of the time option: "Off", then every hour of the day
--- @return table texts
-function HomeSpotSettings.getOptionTexts()
-    local texts = {g_i18n:getText("homeSpots_off")}
-
-    for hour = 0, 23 do
-        table.insert(texts, HomeSpotSettings.formatHour(hour))
-    end
-
-    return texts
 end
 
 
@@ -47,6 +33,45 @@ function HomeSpotSettings.getHourFromState(state)
 
     return state - 2
 end
+
+
+-- The options, in the order they are listed. Each one knows its texts and how to read and write its value.
+HomeSpotSettings.OPTIONS = {
+    {
+        textName = "homeSpots_autoTidy",
+        tooltipName = "homeSpots_autoTidy_tooltip",
+        getTexts = function()
+            local texts = {g_i18n:getText("homeSpots_off")}
+            for hour = 0, 23 do
+                table.insert(texts, HomeSpotSettings.formatHour(hour))
+            end
+            return texts
+        end,
+        getState = function()
+            return HomeSpotSettings.getStateFromHour(HomeSpots.store.autoTidyHour)
+        end,
+        setState = function(state)
+            HomeSpots.store.autoTidyHour = HomeSpotSettings.getHourFromState(state)
+        end
+    },
+    {
+        textName = "homeSpots_markers",
+        tooltipName = "homeSpots_markers_tooltip",
+        getTexts = function()
+            return {
+                g_i18n:getText("homeSpots_markersAway"),
+                g_i18n:getText("homeSpots_markersAlways"),
+                g_i18n:getText("homeSpots_off")
+            }
+        end,
+        getState = function()
+            return HomeSpots.store.markerMode
+        end,
+        setState = function(state)
+            HomeSpots.store.markerMode = state
+        end
+    }
+}
 
 
 ---Returns true for a multi text option with free choice of texts (not an on/off toggle)
@@ -94,12 +119,44 @@ local function findSectionHeaderTemplate(layout)
 end
 
 
----Add the option to the settings page (once per settings layout)
+---Add one option row, copied from the template row
+-- @param table layout settings layout
+-- @param table rowTemplate row to copy
+-- @param table option option definition from HomeSpotSettings.OPTIONS
+local function addOptionRow(layout, rowTemplate, option)
+    local row = rowTemplate:clone(layout)
+    row.id = nil
+
+    for _, child in ipairs(row.elements) do
+        child.id = nil
+
+        if isMultiTextOption(child) then
+            child.target = option
+            child.onClickCallback = HomeSpotSettings.onOptionChanged
+            child:setTexts(option.getTexts())
+            child:setDisabled(false)
+
+            local tooltipElement = child.elements[1]
+            if tooltipElement ~= nil and tooltipElement:isa(TextElement) then
+                tooltipElement:setText(g_i18n:getText(option.tooltipName))
+            end
+
+            option.element = child
+        elseif child:isa(TextElement) then
+            child:setText(g_i18n:getText(option.textName))
+        end
+    end
+
+    row:reloadFocusHandling(true)
+end
+
+
+---Add the Home Spots section to the settings page (once per settings layout)
 -- @param table settingsFrame in-game menu settings frame
 function HomeSpotSettings.inject(settingsFrame)
     local layout = settingsFrame.generalSettingsLayout or settingsFrame.gameSettingsLayout
     if layout == nil then
-        Logging.warning("Home Spots: settings layout not found, the automatic send-home option is not shown")
+        Logging.warning("Home Spots: settings layout not found, the Home Spots settings are not shown")
         return
     end
 
@@ -110,7 +167,7 @@ function HomeSpotSettings.inject(settingsFrame)
 
     local rowTemplate = findOptionRowTemplate(settingsFrame, layout)
     if rowTemplate == nil then
-        Logging.warning("Home Spots: no settings row to copy, the automatic send-home option is not shown")
+        Logging.warning("Home Spots: no settings row to copy, the Home Spots settings are not shown")
         return
     end
 
@@ -121,31 +178,9 @@ function HomeSpotSettings.inject(settingsFrame)
         header:setText(g_i18n:getText("homeSpots_settingsSection"))
     end
 
-    local row = rowTemplate:clone(layout)
-    row.id = nil
-
-    local tooltip = g_i18n:getText("homeSpots_autoTidy_tooltip")
-    for _, child in ipairs(row.elements) do
-        child.id = nil
-
-        if isMultiTextOption(child) then
-            child.target = HomeSpotSettings
-            child.onClickCallback = HomeSpotSettings.onAutoTidyChanged
-            child:setTexts(HomeSpotSettings.getOptionTexts())
-            child:setDisabled(false)
-
-            local tooltipElement = child.elements[1]
-            if tooltipElement ~= nil and tooltipElement:isa(TextElement) then
-                tooltipElement:setText(tooltip)
-            end
-
-            HomeSpotSettings.optionElement = child
-        elseif child:isa(TextElement) then
-            child:setText(g_i18n:getText("homeSpots_autoTidy"))
-        end
+    for _, option in ipairs(HomeSpotSettings.OPTIONS) do
+        addOptionRow(layout, rowTemplate, option)
     end
-
-    row:reloadFocusHandling(true)
 
     HomeSpotSettings.injectedLayout = layout
     layout:invalidateLayout()
@@ -153,17 +188,19 @@ function HomeSpotSettings.inject(settingsFrame)
 end
 
 
----Called when the player picks another time
+---Called when the player picks another value
+-- @param table option option definition the changed element belongs to
 -- @param integer state option state
-function HomeSpotSettings:onAutoTidyChanged(state)
-    HomeSpots.store.autoTidyHour = HomeSpotSettings.getHourFromState(state)
+function HomeSpotSettings.onOptionChanged(option, state)
+    option.setState(state)
 end
 
 
----Show the current value of the setting
+---Show the current value of every option
 function HomeSpotSettings.refresh()
-    if HomeSpotSettings.optionElement ~= nil then
-        HomeSpotSettings.optionElement:setState(HomeSpotSettings.getStateFromHour(HomeSpots.store.autoTidyHour), false)
+    for _, option in ipairs(HomeSpotSettings.OPTIONS) do
+        if option.element ~= nil then
+            option.element:setState(option.getState(), false)
+        end
     end
 end
-

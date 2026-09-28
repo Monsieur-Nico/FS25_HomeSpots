@@ -19,7 +19,8 @@ spot. You can also let the farm tidy itself up at a set time every day.
 - **Never stacks vehicles.** If something else is parked on a spot, that vehicle stays where it is and you are told
   which one.
 - **Leaves things alone.** Vehicles you or a worker are driving stay put, and anything already on its spot is not moved.
-- **Map markers.** Every saved spot shows as a small house on the in-game map.
+- **Map markers.** An orange house on the map marks every spot whose vehicle is away, so a tidy farm shows none.
+  In the settings you can show every spot instead, green while its vehicle is home, or turn markers off.
 - **Daily tidy-up.** Pick an hour in the settings menu, for example 20:00, and everything goes home by itself every day.
 - **Saved with your savegame.** Spots and the tidy-up hour are stored in `homeSpots.xml` in the savegame folder.
 
@@ -40,12 +41,18 @@ spot. You can also let the farm tidy itself up at a set time every day.
 | Alt + H | Send every vehicle and tool home |
 | Alt + U | Send only what you sit in or look at home |
 
+On the map, select a vehicle or tool that is away from its spot and pick **Send home**.
+
 All keys can be changed in the game's Controls menu.
 
 ## Settings
 
-Open **Settings** from the pause menu and scroll to the bottom of the General page. Under **Home Spots**, choose
-**Send vehicles home at**: Off, or any hour from 00:00 to 23:00. The choice is saved with the savegame.
+Open **Settings** from the pause menu and scroll to the bottom of the General page. Under **Home Spots**:
+
+- **Send vehicles home at**: Off, or any hour from 00:00 to 23:00. A message warns you one in-game hour before.
+- **Home spot markers**: Away only (default), Always (green when home, orange when away) or Off.
+
+Both are saved with the savegame.
 
 ## Compatibility
 

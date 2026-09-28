@@ -4,7 +4,7 @@ package.path = "tests/?.lua;" .. package.path
 
 local game = require("game_mock")
 
-for _, name in ipairs({"HomeSpotArea", "HomeSpotStore", "HomeSpotHotspot", "HomeSpotSettings", "HomeSpots"}) do
+for _, name in ipairs({"HomeSpotArea", "HomeSpotStore", "HomeSpotHotspot", "HomeSpotSettings", "HomeSpots", "HomeSpotMapMenu"}) do
     dofile("scripts/" .. name .. ".lua")
 end
 
@@ -73,10 +73,39 @@ end)
 test("map marker is named after its vehicle and placed on the spot", function()
     local hotspot = HomeSpots.hotspots["t1"]
     assertEquals(hotspot:getName(), "Home: Fendt")
-    assert(hotspot:getIsVisible())
     assertEquals(hotspot.x, 10, "x")
     assertEquals(hotspot.z, 0, "z")
     assert(hotspot.clickArea ~= nil, "marker can be clicked")
+end)
+
+test("map marker shows only while its vehicle is away, in orange", function()
+    local hotspot = HomeSpots.hotspots["t1"]
+    assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_AWAY, "default setting")
+    assertEquals(hotspot:getIsVisible(), false, "hidden while parked at home")
+
+    game.place(tractor, 400, 0)
+    assert(hotspot:getIsVisible(), "shown while away")
+    assertEquals(hotspot.icon.filename, HomeSpotHotspot.ICON_AWAY, "orange")
+
+    game.place(tractor, 10.5, 0)
+    assertEquals(hotspot:getIsVisible(), false, "hidden when nudged but home")
+end)
+
+test("marker setting: always shows green at home and orange away, off hides all", function()
+    local hotspot = HomeSpots.hotspots["t1"]
+    HomeSpots.store.markerMode = HomeSpotStore.MARKERS_ALWAYS
+    assert(hotspot:getIsVisible(), "shown at home")
+    assertEquals(hotspot.icon.filename, HomeSpotHotspot.ICON_HOME, "green")
+
+    game.place(tractor, 400, 0)
+    assert(hotspot:getIsVisible(), "shown away")
+    assertEquals(hotspot.icon.filename, HomeSpotHotspot.ICON_AWAY, "orange")
+
+    HomeSpots.store.markerMode = HomeSpotStore.MARKERS_OFF
+    assertEquals(hotspot:getIsVisible(), false, "off")
+
+    HomeSpots.store.markerMode = HomeSpotStore.MARKERS_ALWAYS
+    game.place(tractor, 10, 0)
 end)
 
 test("spots and the tidy-up hour survive save and reload", function()
@@ -84,9 +113,11 @@ test("spots and the tidy-up hour survive save and reload", function()
     HomeSpots.onSaveCareer({savegameDirectory = "/savegame1"})
     HomeSpots.onMissionDeleted()
     assertEquals(game.countMapHotspots(), 0, "markers after leaving")
+    assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_AWAY, "marker setting back to default")
 
     HomeSpots.onMissionLoaded({missionInfo = {savegameDirectory = "/savegame1"}})
     assertEquals(HomeSpots.store.autoTidyHour, 20, "tidy-up hour")
+    assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_ALWAYS, "marker setting")
     assert(HomeSpots.store:has(plough))
     assertEquals(game.countMapHotspots(), 3, "markers after reload")
 end)
@@ -168,7 +199,7 @@ end)
 
 test("help panel names what set, update and remove will act on", function()
     HomeSpots.registerGlobalActionEvents(nil, nil)
-    local events, ids = game.actionEvents, HomeSpots.actionEventIds
+    local events, ids = game.actionEvents, HomeSpots.actionEventIds[HomeSpots.DEFAULT_INPUT_CONTEXT]
 
     game.collisionHitNode = nil
     HomeSpots:update(16)
@@ -253,9 +284,8 @@ end
 for _, hasTimeScale in ipairs({false, true}) do
     local caseName = hasTimeScale and "copying the time scale row" or "searching the layout"
 
-    test("tidy-up setting is an hour picker, " .. caseName, function()
+    test("settings section has the tidy-up hour and marker options, " .. caseName, function()
         HomeSpotSettings.injectedLayout = nil
-        HomeSpotSettings.optionElement = nil
 
         local layout = newElement("layout")
         local header = newElement("header")
@@ -267,9 +297,9 @@ for _, hasTimeScale in ipairs({false, true}) do
 
         local frame = {generalSettingsLayout = layout, multiTimeScale = hasTimeScale and multiOption or nil}
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 5, "header and row added")
+        assertEquals(#layout.elements, 6, "header and two rows added")
 
-        local option = HomeSpotSettings.optionElement
+        local option = HomeSpotSettings.OPTIONS[1].element
         assert(option ~= nil and option.kind == MultiTextOptionElement, "copied a multi choice row, not a toggle")
         assertEquals(#option.texts, 25, "Off plus 24 hours")
         assertEquals(option.texts[22], "20:00")
@@ -283,8 +313,16 @@ for _, hasTimeScale in ipairs({false, true}) do
         assertEquals(HomeSpots.store.autoTidyHour, 17, "17:00")
         option.onClickCallback(option.target, 22)
 
+        local markers = HomeSpotSettings.OPTIONS[2].element
+        assertEquals(layout.elements[6].elements[2].text, "homeSpots_markers")
+        assertEquals(#markers.texts, 3, "away only, always, off")
+        assertEquals(markers.state, HomeSpots.store.markerMode, "shows the saved setting")
+        markers.onClickCallback(markers.target, HomeSpotStore.MARKERS_OFF)
+        assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_OFF, "off")
+        markers.onClickCallback(markers.target, HomeSpotStore.MARKERS_AWAY)
+
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 5, "not added twice")
+        assertEquals(#layout.elements, 6, "not added twice")
     end)
 end
 
@@ -352,9 +390,21 @@ test("tool without a hittable collision is found by its outline", function()
     trailer.farmId = 1
 end)
 
+test("standing inside a vehicle's outline does not lock the prompt onto it", function()
+    game.currentVehicle = nil
+    game.place(trailer, 300, 300)
+    game.place(plough, 305, 300, 0)
+
+    lookRay = {300, 300, 0, -1}
+    assertEquals(#HomeSpots.getTargetVehicles(), 0, "looking away from inside the trailer")
+
+    lookRay = {300, 300, 1, 0}
+    assertEquals(HomeSpots.getTargetVehicles()[1], plough, "looking at the tool next to it")
+end)
+
 test("prompt clears as soon as the player looks away", function()
     HomeSpots.registerGlobalActionEvents(nil, nil)
-    local events, ids = game.actionEvents, HomeSpots.actionEventIds
+    local events, ids = game.actionEvents, HomeSpots.actionEventIds[HomeSpots.DEFAULT_INPUT_CONTEXT]
 
     lookRay = {300, 294, 0, 1}
     HomeSpots:update(16)
@@ -433,7 +483,7 @@ end)
 
 test("send this one home only shows for something with a home spot", function()
     HomeSpots.registerGlobalActionEvents(nil, nil)
-    local events, ids = game.actionEvents, HomeSpots.actionEventIds
+    local events, ids = game.actionEvents, HomeSpots.actionEventIds[HomeSpots.DEFAULT_INPUT_CONTEXT]
     game.currentVehicle = nil
 
     game.collisionHitNode = car.rootNode
@@ -444,6 +494,86 @@ test("send this one home only shows for something with a home spot", function()
     HomeSpots:update(16)
     assert(events[ids.HOMESPOTS_SEND_ONE].active, "shown with spot")
     assertEquals(events[ids.HOMESPOTS_SEND_ONE].text, "send: Trailer")
+    game.collisionHitNode = nil
+end)
+
+test("map menu offers Send home only for a vehicle away from its spot", function()
+    game.currentVehicle = nil
+    tractor.implements, plough.attacher = {}, nil
+    game.place(tractor, 10, 0)
+    game.place(car, 200, 200)
+    local frame = InGameMenuMapFrame.newFrame({{text = "Enter", isActive = true}, {text = "Sell", isActive = true}})
+
+    frame:setMapSelectionItem({vehicle = tractor})
+    assertEquals(table.concat(frame.shownActions, ","), "Enter,Sell", "hidden while home")
+
+    game.place(tractor, 650, 0)
+    frame:setMapSelectionItem({vehicle = tractor})
+    assertEquals(table.concat(frame.shownActions, ","), "Enter,Sell,Send home", "listed last while away")
+
+    frame:setMapSelectionItem({vehicle = car})
+    assertEquals(#frame.shownActions, 2, "hidden for a vehicle without a spot")
+
+    frame:setMapSelectionItem(nil)
+    assertEquals(#frame.shownActions, 2, "hidden without a selection")
+
+    frame.contextActions = {{text = "Enter", isActive = true}}
+    frame:setMapSelectionItem({vehicle = tractor})
+    assertEquals(table.concat(frame.shownActions, ","), "Enter,Send home", "added again to a rebuilt list")
+end)
+
+test("Send home from the map moves the vehicle and hides the action", function()
+    local frame = InGameMenuMapFrame.newFrame({})
+    frame:setMapSelectionItem({vehicle = tractor})
+    frame.homeSpotsAction.callback()
+    assertEquals(#frame.shownActions, 0, "hidden once sent")
+
+    HomeSpots:update(16)
+    assertEquals(getX(tractor), 10, "tractor home")
+    assertEquals(game.lastNotification(), "sent: Fendt")
+
+    frame:setMapSelectionItem(frame.currentHotspot)
+    assertEquals(#frame.shownActions, 0, "nothing left to send")
+end)
+
+-- The game registers the on-foot keys without a context name, and the vehicle keys again whenever
+-- the vehicle refreshes its own (getting in, hitching or unhitching, being sent home)
+local function registerKeys(contextName)
+    game.inputContext = contextName or "PLAYER"
+    HomeSpots.registerGlobalActionEvents(nil, contextName)
+    game.inputContext = nil
+end
+
+local function getShownEvent(actionName)
+    local shown
+    for _, event in ipairs(game.contextEvents.PLAYER) do
+        if event.action == InputAction[actionName] then
+            assertEquals(shown, nil, "one entry per key on foot")
+            shown = event
+        end
+    end
+    return shown
+end
+
+test("help panel follows the target on foot after leaving a vehicle", function()
+    registerKeys(nil)
+    game.currentVehicle = nil
+    game.collisionHitNode = tractor.rootNode
+    HomeSpots:update(16)
+    assertEquals(getShownEvent("HOMESPOTS_SET").text, "update: Fendt", "looking at the tractor")
+
+    game.currentVehicle = tractor
+    registerKeys("VEHICLE")
+    HomeSpots:update(16)
+    registerKeys("VEHICLE")
+    HomeSpots:update(16)
+
+    game.currentVehicle = nil
+    registerKeys(nil)
+    game.collisionHitNode = car.rootNode
+    HomeSpots:update(16)
+    assertEquals(getShownEvent("HOMESPOTS_SET").text, "set: Pickup", "on foot entry names what is looked at")
+    assertEquals(getShownEvent("HOMESPOTS_SEND_ONE").active, false, "on foot send hidden")
     game.collisionHitNode = nil
 end)
 

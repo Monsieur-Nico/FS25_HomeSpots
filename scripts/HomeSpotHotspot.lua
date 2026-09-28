@@ -2,7 +2,8 @@
 HomeSpotHotspot = {}
 local HomeSpotHotspot_mt = Class(HomeSpotHotspot, MapHotspot)
 
-HomeSpotHotspot.ICON_FILENAME = Utils.getFilename("icon_homeSpotMarker.dds", g_currentModDirectory)
+HomeSpotHotspot.ICON_HOME = Utils.getFilename("icon_homeSpotHome.dds", g_currentModDirectory)
+HomeSpotHotspot.ICON_AWAY = Utils.getFilename("icon_homeSpotAway.dds", g_currentModDirectory)
 HomeSpotHotspot.ICON_SIZE = 32
 
 
@@ -14,7 +15,7 @@ function HomeSpotHotspot.new(uniqueId)
 
     self.uniqueId = uniqueId
     self.width, self.height = getNormalizedScreenValues(HomeSpotHotspot.ICON_SIZE, HomeSpotHotspot.ICON_SIZE)
-    self.icon = Overlay.new(HomeSpotHotspot.ICON_FILENAME, 0, 0, self.width, self.height)
+    self.icon = Overlay.new(HomeSpotHotspot.ICON_AWAY, 0, 0, self.width, self.height)
     self.clickArea = MapHotspot.getClickCircle(0.667)
 
     return self
@@ -35,13 +36,25 @@ function HomeSpotHotspot:getVehicle()
 end
 
 
----Hide markers of vehicles that no longer exist
+---Show the marker as the marker setting says, green while its vehicle is home and orange while it is away.
+-- By default only spots whose vehicle is away show, as the game's own vehicle icon already marks a parked one.
 -- @return boolean isVisible
 function HomeSpotHotspot:getIsVisible()
     local superGetIsVisible = HomeSpotHotspot:superClass().getIsVisible
-    local isVisible = superGetIsVisible == nil or superGetIsVisible(self)
+    if superGetIsVisible ~= nil and not superGetIsVisible(self) then
+        return false
+    end
 
-    return isVisible and self:getVehicle() ~= nil
+    local markerMode = HomeSpots.store.markerMode
+    local vehicle = self:getVehicle()
+    if vehicle == nil or markerMode == HomeSpotStore.MARKERS_OFF then
+        return false
+    end
+
+    local isAtHome = HomeSpots.getIsAtHome(vehicle)
+    self.icon:setImage(isAtHome and HomeSpotHotspot.ICON_HOME or HomeSpotHotspot.ICON_AWAY)
+
+    return markerMode == HomeSpotStore.MARKERS_ALWAYS or not isAtHome
 end
 
 

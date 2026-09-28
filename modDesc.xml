@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.1.0.8</version>
+    <version>1.1.0.9</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -13,54 +13,57 @@ How to use:
 - Park a vehicle where it belongs and press Alt + J while sitting in it. The vehicle and every attached tool remember that spot.
 - On foot, look at a tool or vehicle and press Alt + J to save its spot on its own.
 - Press Alt + H, on foot or in a vehicle, to send every vehicle and tool of your farm to its home spot.
-- Press Alt + U to send only the vehicle you sit in, or the tool you look at, to its home spot. Sitting in it, you go along.
+- Press Alt + U to send only the vehicle you sit in, or the tool you look at, to its home spot. Sitting in it, you go along. On the map, select a vehicle or tool and pick "Send home".
 - Press Alt + K to remove the home spot of what you sit in or look at.
-- Saved spots show as small house markers on the in-game map.
+- A house marker on the map shows each spot whose vehicle is away. In the settings you can show every spot instead (green when home, orange when away) or none.
 - In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
 
 Vehicles driven by you or by a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
 Single-player only for now.
 
-Changelog 1.1.0.8:
-- New: Alt + U sends only the vehicle you sit in, or the tool you look at, to its home spot.
-- New: a heads-up message one in-game hour before the daily tidy-up.]]></en>
+Changelog 1.1.0.9:
+- New: map markers show only spots whose vehicle is away, with a setting for always (green or orange) or off.
+- New: "Send home" in the map menu of a selected vehicle or tool.
+- Fix: prompts no longer freeze on one vehicle after getting in and out of it.]]></en>
         <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
 
 So geht's:
 - Stelle ein Fahrzeug an seinen Platz und drücke Alt + J, während du darin sitzt. Fahrzeug und angehängte Geräte merken sich diesen Platz.
 - Zu Fuß: Schau ein Gerät oder Fahrzeug an und drücke Alt + J, um nur dessen Platz zu speichern.
 - Alt + H (zu Fuß oder im Fahrzeug) schickt alle Fahrzeuge und Geräte deines Hofs an ihren Stellplatz.
-- Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz. Sitzt du darin, fährst du mit.
+- Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz. Sitzt du darin, fährst du mit. Auf der Karte: Fahrzeug oder Gerät auswählen und "Zum Stellplatz" wählen.
 - Alt + K entfernt den Stellplatz dessen, worin du sitzt oder was du anschaust.
-- Gespeicherte Plätze erscheinen als kleine Haus-Symbole auf der Karte.
+- Ein Haus-Symbol auf der Karte zeigt jeden Platz, dessen Fahrzeug unterwegs ist. In den Einstellungen kannst du stattdessen alle Plätze zeigen (grün daheim, orange unterwegs) oder keine.
 - Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
 
 Fahrzeuge, die du oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
 
 Vorerst nur Einzelspieler.
 
-Changelog 1.1.0.8:
-- Neu: Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz.
-- Neu: ein Hinweis eine Spielstunde vor dem täglichen Aufräumen.]]></de>
+Changelog 1.1.0.9:
+- Neu: Karten-Symbole zeigen nur Plätze, deren Fahrzeug unterwegs ist, mit Einstellung für immer (grün oder orange) oder aus.
+- Neu: "Zum Stellplatz" im Kartenmenü eines ausgewählten Fahrzeugs oder Geräts.
+- Behoben: Hinweise bleiben nach dem Ein- und Aussteigen nicht mehr an einem Fahrzeug hängen.]]></de>
         <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
 
 Utilisation :
 - Garez un véhicule à sa place et appuyez sur Alt + J depuis le siège. Le véhicule et chaque outil attelé retiennent cet emplacement.
 - À pied, regardez un outil ou un véhicule et appuyez sur Alt + J pour enregistrer sa place à lui seul.
 - Appuyez sur Alt + H, à pied ou en véhicule, pour renvoyer tous les véhicules et outils de votre ferme à leur place.
-- Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place. Si vous êtes dedans, vous suivez.
+- Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place. Si vous êtes dedans, vous suivez. Sur la carte, sélectionnez un véhicule ou un outil et choisissez « Renvoyer à sa place ».
 - Alt + K efface la place de ce que vous conduisez ou regardez.
-- Les places enregistrées apparaissent sur la carte sous forme de petites maisons.
+- Une petite maison sur la carte montre chaque place dont le véhicule est absent. Dans les paramètres, vous pouvez afficher toutes les places (vert si présent, orange si absent) ou aucune.
 - Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
 
 Les véhicules conduits par vous ou par un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
 
 Solo uniquement pour le moment.
 
-Changelog 1.1.0.8 :
-- Nouveau : Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place.
-- Nouveau : un message une heure de jeu avant le rangement quotidien.]]></fr>
+Changelog 1.1.0.9 :
+- Nouveau : la carte ne montre que les places dont le véhicule est absent, avec un réglage pour toujours (vert ou orange) ou jamais.
+- Nouveau : « Renvoyer à sa place » dans le menu de la carte d'un véhicule ou outil sélectionné.
+- Correction : les indications ne restent plus bloquées sur un véhicule après y être monté puis descendu.]]></fr>
     </description>
     <iconFilename>icon_homeSpots.dds</iconFilename>
     <multiplayer supported="false" />
@@ -71,6 +74,7 @@ Changelog 1.1.0.8 :
         <sourceFile filename="scripts/HomeSpotHotspot.lua" />
         <sourceFile filename="scripts/HomeSpotSettings.lua" />
         <sourceFile filename="scripts/HomeSpots.lua" />
+        <sourceFile filename="scripts/HomeSpotMapMenu.lua" />
     </extraSourceFiles>
 
     <actions>
@@ -215,6 +219,31 @@ Changelog 1.1.0.8 :
             <en>Every day at this time, every vehicle and tool with a home spot is sent back to it. Saved with this savegame.</en>
             <de>Jeden Tag zu dieser Uhrzeit werden alle Fahrzeuge und Geräte mit Stellplatz dorthin zurückgeschickt. Wird mit diesem Spielstand gespeichert.</de>
             <fr>Chaque jour à cette heure, chaque véhicule et outil ayant une place y est renvoyé. Enregistré avec cette partie.</fr>
+        </text>
+        <text name="homeSpots_mapSendHome">
+            <en>Send home</en>
+            <de>Zum Stellplatz</de>
+            <fr>Renvoyer à sa place</fr>
+        </text>
+        <text name="homeSpots_markers">
+            <en>Home spot markers</en>
+            <de>Stellplatz-Symbole</de>
+            <fr>Symboles des places</fr>
+        </text>
+        <text name="homeSpots_markers_tooltip">
+            <en>Which home spots show on the map. Away only: spots whose vehicle is elsewhere (orange). Always: every spot, green while its vehicle is home. Saved with this savegame.</en>
+            <de>Welche Stellplätze auf der Karte erscheinen. Nur unterwegs: Plätze, deren Fahrzeug woanders ist (orange). Immer: alle Plätze, grün, solange das Fahrzeug dort steht. Wird mit diesem Spielstand gespeichert.</de>
+            <fr>Quelles places apparaissent sur la carte. Absents seulement : places dont le véhicule est ailleurs (orange). Toujours : toutes les places, en vert quand le véhicule y est. Enregistré avec cette partie.</fr>
+        </text>
+        <text name="homeSpots_markersAway">
+            <en>Away only</en>
+            <de>Nur unterwegs</de>
+            <fr>Absents seulement</fr>
+        </text>
+        <text name="homeSpots_markersAlways">
+            <en>Always</en>
+            <de>Immer</de>
+            <fr>Toujours</fr>
         </text>
         <text name="homeSpots_off">
             <en>Off</en>

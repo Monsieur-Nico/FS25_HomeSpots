@@ -6,6 +6,21 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+### Added
+- "Send home" in the map menu of a selected vehicle or tool (next to Enter vehicle, Reset and Sell). It shows
+  when the vehicle, or a tool attached to it, has a home spot and is away from it.
+
+### Fixed
+- On foot, standing inside or right next to a vehicle's outline (for example between a tractor and its seeder)
+  no longer locks the prompts onto that vehicle wherever you look.
+- The prompts no longer freeze on one vehicle after getting in and out of it. The keys were registered on foot
+  and in the vehicle under the same ids, so updates only reached the in-vehicle copy.
+
+### Changed
+- Map markers show only spots whose vehicle is away, as an orange badge, so parked vehicles no longer
+  have a house stacked under their own map icon. A new "Home spot markers" setting offers Away only (default),
+  Always (green when home, orange when away) or Off, saved with the savegame.
+
 ## [1.1.0.8] - 2026-09-28
 
 ### Added
