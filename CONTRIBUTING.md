@@ -48,7 +48,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:
 
 1. Update `<version>` in `modDesc.xml`.
 2. Move the "Unreleased" notes in `CHANGELOG.md` under a new version heading and add its compare link.
-3. Commit, then tag and push: `git tag v1.1.0.8 && git push origin v1.1.0.8`.
+3. Commit and push, then either tag and push (`git tag v1.1.0.8 && git push origin v1.1.0.8`) or start the
+   Release workflow from the Actions tab with "Run workflow", which creates the tag from the `modDesc.xml` version.
 
 The release workflow checks that the tag matches `modDesc.xml`, runs the checks, builds `FS25_HomeSpots.zip`
 and publishes it on the GitHub releases page with the changelog notes.
