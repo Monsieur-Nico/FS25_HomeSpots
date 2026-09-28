@@ -10,18 +10,22 @@
         </GuiElement>
 
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer">
+            <!-- Table header as on the game's own list pages; each title uses the same position, width and text offset as its column in the rows -->
             <GuiElement profile="fs25_statisticsHeaderBox">
-                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnVehicle" position="16px 0px" />
-                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnStatus" position="440px 0px" />
-                <Text profile="fs25_statisticsHeaderText" id="homeSpotsColumnDistance" position="670px 0px" />
+                <Text profile="homeSpots_columnTitle" id="homeSpotsColumnVehicle" position="0px 0px" width="380px" />
+                <Text profile="homeSpots_columnTitle" id="homeSpotsColumnStatus" position="384px 0px" width="200px" />
+                <Text profile="homeSpots_columnTitle" id="homeSpotsColumnDistance" position="594px 0px" width="220px" />
+                <!-- How many are away, in use and home, centred above the picture panel -->
+                <Text profile="homeSpots_summary" id="homeSpotsSummary" />
                 <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp" />
             </GuiElement>
 
             <SmoothList profile="homeSpots_list" id="homeSpotsList" focusChangeTop="nil" focusChangeBottom="nil" selectedWithoutFocus="true">
                 <ListItem profile="homeSpots_listItem">
-                    <Text profile="homeSpots_listItemText" name="name" position="0px 0px" width="420px" />
-                    <Text profile="homeSpots_listItemText" name="status" position="424px 0px" width="220px" />
-                    <Text profile="homeSpots_listItemText" name="distance" position="654px 0px" width="200px" />
+                    <!-- Fixed columns, narrow enough for the list on a 4:3 screen; the column titles above use the same positions -->
+                    <Text profile="homeSpots_listItemText" name="name" position="0px 0px" width="380px" />
+                    <Text profile="homeSpots_listItemText" name="status" position="384px 0px" width="200px" />
+                    <Text profile="homeSpots_listItemText" name="distance" position="594px 0px" width="220px" />
                 </ListItem>
             </SmoothList>
 
@@ -38,6 +42,7 @@
                 <Text profile="homeSpots_previewName" id="homeSpotsPreviewName" />
                 <Text profile="homeSpots_previewText" id="homeSpotsPreviewStatus" position="0px -470px" />
                 <Text profile="homeSpots_previewText" id="homeSpotsPreviewDistance" position="0px -506px" />
+                <Text profile="homeSpots_previewTools" id="homeSpotsPreviewTools" />
             </GuiElement>
         </GuiElement>
     </GuiElement>
@@ -59,13 +64,25 @@
             <textSize value="20px" />
             <textMaxNumLines value="1" />
         </Profile>
+        <!-- The game's header title, with the row text's offset and alignment so titles start where values start -->
+        <Profile name="homeSpots_columnTitle" extends="fs25_statisticsHeaderText">
+            <textOffset value="16px 0px" />
+            <textAlignment value="left" />
+            <textMaxNumLines value="1" />
+        </Profile>
+        <Profile name="homeSpots_summary" extends="homeSpots_columnTitle" with="anchorStretchingYRight">
+            <position value="0px 0px" />
+            <width value="400px" />
+            <textOffset value="0px 0px" />
+            <textAlignment value="center" />
+        </Profile>
         <Profile name="homeSpots_listSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
             <position value="-420px -56px" />
             <absoluteSizeOffset value="0px 56px" />
         </Profile>
         <Profile name="homeSpots_preview" extends="emptyPanel" with="anchorTopRight">
             <position value="0px -56px" />
-            <size value="400px 550px" />
+            <size value="400px 620px" />
         </Profile>
         <Profile name="homeSpots_previewBackground" extends="baseReference" with="anchorStretchingYStretchingX">
             <imageColor value="$preset_fs25_colorGreyDark_50" />
@@ -89,6 +106,13 @@
             <textSize value="20px" />
             <textAlignment value="center" />
             <textMaxNumLines value="1" />
+        </Profile>
+        <Profile name="homeSpots_previewTools" extends="homeSpots_previewText">
+            <position value="20px -546px" />
+            <height value="54px" />
+            <absoluteSizeOffset value="40px 0px" />
+            <textSize value="18px" />
+            <textMaxNumLines value="2" />
         </Profile>
     </GUIProfiles>
 </GUI>

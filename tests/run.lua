@@ -641,6 +641,7 @@ test("page lists the farm's vehicles with a spot, away ones first", function()
     car.farmId = 2
     HomeSpots.store:set(car)
     game.place(car, 300, 300)
+    tractor.mapHotspot = {name = "Fendt marker"}
 
     page:onFrameOpen()
     assertEquals(getShownRows(), "Fendt|homeSpots_statusAway|500 m, Trailer|homeSpots_statusAway|40 m, Plough|homeSpots_statusHome|-")
@@ -648,7 +649,9 @@ test("page lists the farm's vehicles with a spot, away ones first", function()
     assertEquals(page.homeSpotsList.cells[1].status.textColor[1], 0.98, "away in orange")
     assertEquals(page.homeSpotsEmptyText.isVisible, false, "no empty text")
     assertEquals(game.focusedElement, page.homeSpotsList, "list has the focus")
-    assertEquals(getButtonTexts(), "MENU_BACK,Send home,input_HOMESPOTS_SEND_ALL")
+    assertEquals(getButtonTexts(), "MENU_BACK,Send home,input_HOMESPOTS_SEND_ALL,homeSpots_showOnMap,homeSpots_removeSpot")
+    assertEquals(page.homeSpotsSummary.text, "2 away, 0 in use, 1 home", "summary")
+    assertEquals(page.homeSpotsPreviewTools.isVisible, false, "no tools hooked")
     assertEquals(getPreview(), "store/Fendt.dds|Fendt|homeSpots_statusAway|500 m", "preview of the selected vehicle")
     assertEquals(table.concat(page.homeSpotsPreviewImage.imageUVs, " "), "0 0 0 1 1 0 1 1", "whole picture")
     assertEquals(page.homeSpotsPreviewStatus.textColor[1], 0.98, "preview status in orange")
@@ -659,6 +662,8 @@ test("Send home on the page moves the selected vehicle with its tools", function
     plough.attacher = tractor
     game.place(plough, 510, -6, 0)
     page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+    assert(page.homeSpotsPreviewTools.isVisible, "hooked tools shown")
+    assertEquals(page.homeSpotsPreviewTools.text, "With: Plough", "tool that comes along")
 
     page.sendButtonInfo.callback()
     HomeSpots:update(16)
@@ -670,21 +675,22 @@ test("Send home on the page moves the selected vehicle with its tools", function
     assertEquals(getShownRows(), "Trailer|homeSpots_statusAway|40 m, Fendt|homeSpots_statusHome|-, Plough|homeSpots_statusHome|-")
     assertEquals(page:getSelectedRow().vehicle, tractor, "selection follows the tractor down the list")
     assertEquals(getPreview(), "store/Fendt.dds|Fendt|homeSpots_statusHome|-", "preview follows it too")
-    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "nothing to send for it")
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL,homeSpots_showOnMap,homeSpots_removeSpot", "nothing to send for it")
 end)
 
 test("page hides Send home for a vehicle that is home or in use", function()
     page.homeSpotsList:setSelectedIndex(3)
     assertEquals(getPreview(), "store/Plough.dds|Plough|homeSpots_statusHome|-", "preview of the tool picked")
     page.homeSpotsList:setSelectedIndex(2)
-    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "home")
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL,homeSpots_showOnMap,homeSpots_removeSpot", "home")
 
     game.place(tractor, 200, 0)
     tractor.isControlled = true
     page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
     assertEquals(page.homeSpotsList.cells[2].status.text, "homeSpots_statusInUse", "driven")
     page.homeSpotsList:setSelectedIndex(2)
-    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL", "in use")
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL,homeSpots_showOnMap,homeSpots_removeSpot", "in use")
+    assertEquals(page.homeSpotsSummary.text, "1 away, 1 in use, 1 home", "summary counts the driven one")
 
     tractor.isControlled = false
     game.place(tractor, 10, 0)
@@ -699,6 +705,43 @@ test("Send all home on the page moves everything home", function()
     assertEquals(getShownRows(), "Fendt|homeSpots_statusHome|-, Plough|homeSpots_statusHome|-, Trailer|homeSpots_statusHome|-")
 end)
 
+test("Show on map opens the map page with the vehicle, or the one its tool hangs on", function()
+    page.homeSpotsList:setSelectedIndex(1)
+    assertEquals(page:getSelectedRow().vehicle, tractor)
+    page.mapButtonInfo.callback()
+    assertEquals(menu.currentPage, menu.pageMapOverview, "map page opened")
+    assertEquals(menu.pageMapOverview.selectedHotspot, tractor.mapHotspot, "tractor picked")
+    assertEquals(menu.pageMapOverview.pannedTo, tractor.mapHotspot, "tractor in view")
+
+    page.homeSpotsList:setSelectedIndex(2)
+    assertEquals(page:getSelectedRow().vehicle, plough)
+    tractor.implements, plough.attacher = {{object = plough}}, tractor
+    menu.pageMapOverview.selectedHotspot = nil
+    page.mapButtonInfo.callback()
+    assertEquals(menu.pageMapOverview.selectedHotspot, tractor.mapHotspot, "hooked tool shows its tractor")
+
+    page.homeSpotsList:setSelectedIndex(3)
+    assertEquals(page:getSelectedRow().vehicle, trailer)
+    assertEquals(getButtonTexts(), "MENU_BACK,input_HOMESPOTS_SEND_ALL,homeSpots_removeSpot", "no marker, no map button")
+end)
+
+test("Remove spot asks first, then removes only the selected spot", function()
+    page.removeButtonInfo.callback()
+    assertEquals(game.openDialog.text, "Remove Trailer?", "question names it")
+    game.openDialog.answer(false)
+    assert(HomeSpots.store:has(trailer), "kept on No")
+
+    page.removeButtonInfo.callback()
+    game.openDialog.answer(true)
+    assert(not HomeSpots.store:has(trailer), "removed on Yes")
+    assert(HomeSpots.store:has(tractor) and HomeSpots.store:has(plough), "others kept")
+
+    page:update(HomeSpotOverviewFrame.REFRESH_INTERVAL)
+    assertEquals(getShownRows(), "Fendt|homeSpots_statusHome|-, Plough|homeSpots_statusHome|-")
+    assertEquals(page.homeSpotsSummary.text, "0 away, 0 in use, 2 home", "summary follows")
+    HomeSpots.store:set(trailer)
+end)
+
 test("page without any spot says how to set one", function()
     local spots = HomeSpots.store.spots
     HomeSpots.store.spots = {}
@@ -709,6 +752,7 @@ test("page without any spot says how to set one", function()
     assertEquals(page.homeSpotsEmptyText.text, "homeSpots_overviewEmpty")
     assertEquals(getButtonTexts(), "MENU_BACK", "only back")
     assertEquals(getPreview(), "hidden", "no preview")
+    assertEquals(page.homeSpotsSummary.isVisible, false, "no summary")
 
     HomeSpots.store.spots = spots
     car.farmId = 1

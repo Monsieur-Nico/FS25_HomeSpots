@@ -54,7 +54,7 @@ end
 
 
 ---Returns one row per vehicle of the player's farm with a home spot: away ones first, then in use, then home, each by name
--- @return table rows list of {vehicle, name, status, distance}
+-- @return table rows list of {vehicle, name, status, distance, tools}
 function HomeSpotOverview.getRows()
     local farmId = g_currentMission:getFarmId()
     local rows = {}
@@ -74,7 +74,8 @@ function HomeSpotOverview.getRows()
                 vehicle = vehicle,
                 name = vehicle:getFullName(),
                 status = status,
-                distance = HomeSpotOverview.getDistance(vehicle, components)
+                distance = HomeSpotOverview.getDistance(vehicle, components),
+                tools = HomeSpotOverview.getToolNames(vehicle)
             })
         end
     end
@@ -103,6 +104,43 @@ function HomeSpotOverview.showRowTexts(row, name, status, distance)
 end
 
 
+---Returns the names of the tools hooked to a vehicle that have a home spot, so Send home brings them along
+-- @param table vehicle vehicle
+-- @return table names
+function HomeSpotOverview.getToolNames(vehicle)
+    local names = {}
+    for index, tool in ipairs(HomeSpotOverview.getVehicleWithTools(vehicle)) do
+        if index > 1 and HomeSpots.store:has(tool) then
+            table.insert(names, tool:getFullName())
+        end
+    end
+
+    return names
+end
+
+
+---Returns the map marker the game shows for a vehicle, or for the vehicle it is hooked to
+-- @param table vehicle vehicle
+-- @return table hotspot, or nil when it has none
+function HomeSpotOverview.getMapHotspot(vehicle)
+    for _, candidate in ipairs({vehicle, vehicle:getRootVehicle()}) do
+        local hotspot = candidate.getMapHotspot ~= nil and candidate:getMapHotspot() or nil
+        if hotspot ~= nil then
+            return hotspot
+        end
+    end
+
+    return nil
+end
+
+
+---Returns the game's in-game menu once it exists
+-- @return table inGameMenu, or nil
+function HomeSpotOverview.getInGameMenu()
+    return g_gui.screenControllers[InGameMenu]
+end
+
+
 ---Returns a vehicle and every tool hooked to it, directly or through another tool
 -- @param table vehicle vehicle
 -- @param table vehicles list to add to, a new one when nil
@@ -128,7 +166,7 @@ function HomeSpotOverview:update(dt)
         return
     end
 
-    local inGameMenu = g_gui.screenControllers[InGameMenu]
+    local inGameMenu = HomeSpotOverview.getInGameMenu()
     if inGameMenu ~= nil and not HomeSpotOverview.triedMenus[inGameMenu] then
         -- Marked first, so a menu the page cannot be added to is only tried once
         HomeSpotOverview.triedMenus[inGameMenu] = true
@@ -274,6 +312,20 @@ function HomeSpotOverviewFrame:initialize()
             self:onSendAllHome()
         end
     }
+    self.mapButtonInfo = {
+        inputAction = InputAction.MENU_EXTRA_2,
+        text = g_i18n:getText("homeSpots_showOnMap"),
+        callback = function()
+            self:onShowOnMap()
+        end
+    }
+    self.removeButtonInfo = {
+        inputAction = InputAction.MENU_CANCEL,
+        text = g_i18n:getText("homeSpots_removeSpot"),
+        callback = function()
+            self:onRemoveSpot()
+        end
+    }
 
     self:updateButtons()
 end
@@ -309,7 +361,7 @@ function HomeSpotOverviewFrame:refresh()
 
     local parts = {}
     for _, row in ipairs(rows) do
-        table.insert(parts, string.format("%s|%s|%d|%d", tostring(row.vehicle), row.name, row.status, math.floor(row.distance)))
+        table.insert(parts, string.format("%s|%s|%d|%d|%s", tostring(row.vehicle), row.name, row.status, math.floor(row.distance), table.concat(row.tools, ",")))
     end
 
     local state = table.concat(parts, ";")
@@ -323,6 +375,7 @@ function HomeSpotOverviewFrame:refresh()
     self.rows = rows
     self.homeSpotsList:reloadData()
     self.homeSpotsEmptyText:setVisible(#rows == 0)
+    self:updateSummary()
 
     -- A vehicle that came home moves down the list: keep it selected, so Send home never lands on another one
     for index, row in ipairs(rows) do
@@ -343,7 +396,8 @@ function HomeSpotOverviewFrame:getSelectedRow()
 end
 
 
----Show Send home only for a selected vehicle that is away, and Send all home while there is any spot
+---Show Send home only for a selected vehicle that is away, Send all home while there is any spot,
+-- and Show on map and Remove spot for the selected vehicle
 function HomeSpotOverviewFrame:updateButtons()
     local buttons = {self.backButtonInfo}
 
@@ -354,6 +408,14 @@ function HomeSpotOverviewFrame:updateButtons()
 
     if #self.rows > 0 then
         table.insert(buttons, self.sendAllButtonInfo)
+    end
+
+    if row ~= nil and HomeSpotOverview.getMapHotspot(row.vehicle) ~= nil then
+        table.insert(buttons, self.mapButtonInfo)
+    end
+
+    if row ~= nil then
+        table.insert(buttons, self.removeButtonInfo)
     end
 
     self:setMenuButtonInfo(buttons)
@@ -373,6 +435,60 @@ end
 ---Send every vehicle and tool of the farm home
 function HomeSpotOverviewFrame:onSendAllHome()
     HomeSpots.request(HomeSpots.ACTION_SEND_ALL, {})
+end
+
+
+---Switch to the map page with the selected vehicle picked and in view
+function HomeSpotOverviewFrame:onShowOnMap()
+    local row = self:getSelectedRow()
+    local inGameMenu = HomeSpotOverview.getInGameMenu()
+    local hotspot = row ~= nil and HomeSpotOverview.getMapHotspot(row.vehicle) or nil
+    if hotspot == nil or inGameMenu == nil or inGameMenu.pageMapOverview == nil then
+        return
+    end
+
+    local mapFrame = inGameMenu.pageMapOverview
+    inGameMenu:goToPage(mapFrame)
+    mapFrame:setMapSelectionItem(hotspot)
+    if mapFrame.ingameMap ~= nil then
+        mapFrame.ingameMap:panToHotspot(hotspot)
+    end
+end
+
+
+---Ask, then remove the selected vehicle's home spot
+function HomeSpotOverviewFrame:onRemoveSpot()
+    local row = self:getSelectedRow()
+    if row == nil then
+        return
+    end
+
+    YesNoDialog.show(HomeSpotOverviewFrame.onRemoveSpotAnswered, self,
+        string.format(g_i18n:getText("homeSpots_removeSpotQuestion"), row.name),
+        nil, nil, nil, nil, nil, nil, row.vehicle)
+end
+
+
+---The player answered the Remove spot question
+-- @param boolean isYes true to remove the spot
+-- @param table vehicle vehicle whose spot to remove
+function HomeSpotOverviewFrame:onRemoveSpotAnswered(isYes, vehicle)
+    if isYes then
+        HomeSpots.request(HomeSpots.ACTION_CLEAR, {vehicle})
+    end
+end
+
+
+---Count the rows by status in the line above the picture
+function HomeSpotOverviewFrame:updateSummary()
+    local counts = {0, 0, 0}
+    for _, row in ipairs(self.rows) do
+        counts[row.status] = counts[row.status] + 1
+    end
+
+    self.homeSpotsSummary:setVisible(#self.rows > 0)
+    self.homeSpotsSummary:setText(string.format(g_i18n:getText("homeSpots_summary"),
+        counts[HomeSpotOverview.STATUS_AWAY], counts[HomeSpotOverview.STATUS_IN_USE], counts[HomeSpotOverview.STATUS_HOME]))
 end
 
 
@@ -418,7 +534,7 @@ function HomeSpotOverviewFrame:onSelectionChanged()
 end
 
 
----Show the shop picture, name, status and distance of the selected vehicle, or nothing without a selection
+---Show the shop picture, name, status, distance and hooked tools of the selected vehicle, or nothing without a selection
 function HomeSpotOverviewFrame:updatePreview()
     local row = self:getSelectedRow()
 
@@ -432,6 +548,9 @@ function HomeSpotOverviewFrame:updatePreview()
         self.homeSpotsPreviewImage:setImageUVs(nil, unpack(HomeSpotOverview.getWholeImageUVs()))
     end
     HomeSpotOverview.showRowTexts(row, self.homeSpotsPreviewName, self.homeSpotsPreviewStatus, self.homeSpotsPreviewDistance)
+
+    self.homeSpotsPreviewTools:setVisible(#row.tools > 0)
+    self.homeSpotsPreviewTools:setText(string.format(g_i18n:getText("homeSpots_previewTools"), table.concat(row.tools, ", ")))
 end
 
 

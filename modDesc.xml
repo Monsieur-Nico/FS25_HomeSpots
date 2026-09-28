@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.3.0.0</version>
+    <version>1.4.0.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -23,7 +23,10 @@ Vehicles driven by you, another player or a worker are left alone. If something 
 
 Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
 
-Changelog 1.3.0.0:
+Changelog 1.4.0.0:
+- New mod icon.
+- The Home Spots page also fits 4:3 screens.
+- Home Spots page: see the tools that come along with the selected vehicle, remove a spot, show a vehicle on the map, and a count of what is away, in use and home.
 - New: Home Spots page in the menu, listing every vehicle and tool with a spot, whether it is home or away and how far off, a picture of the selected one, with Send home and Send all home.]]></en>
         <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
 
@@ -41,7 +44,10 @@ Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben st
 
 Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
 
-Changelog 1.3.0.0:
+Changelog 1.4.0.0:
+- Neues Mod-Symbol.
+- Die Seite "Stellplätze" passt jetzt auch auf 4:3-Bildschirme.
+- Seite "Stellplätze": zeigt die mitkommenden Geräte, Stellplatz entfernen, Fahrzeug auf der Karte zeigen und eine Übersicht, was unterwegs, in Benutzung und daheim ist.
 - Neu: Seite "Stellplätze" im Menü mit allen Fahrzeugen und Geräten mit Stellplatz, ob daheim oder unterwegs und wie weit entfernt, einem Bild des ausgewählten, mit "Zum Stellplatz" und "Alle Fahrzeuge zum Stellplatz".]]></de>
         <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
 
@@ -59,7 +65,10 @@ Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. 
 
 Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
 
-Changelog 1.3.0.0 :
+Changelog 1.4.0.0 :
+- Nouvelle icône du mod.
+- La page « Places de rangement » s'affiche aussi sur les écrans 4:3.
+- Page « Places de rangement » : outils qui suivent le véhicule, retirer une place, voir un véhicule sur la carte et un décompte des absents, en service et à leur place.
 - Nouveau : page « Places de rangement » dans le menu, avec chaque véhicule et outil ayant une place, présent ou absent et à quelle distance, une image de celui sélectionné, avec « Renvoyer à sa place » et « Renvoyer tous les véhicules à leur place ».]]></fr>
     </description>
     <iconFilename>icon_homeSpots.dds</iconFilename>
@@ -265,9 +274,34 @@ Changelog 1.3.0.0 :
             <fr>État</fr>
         </text>
         <text name="homeSpots_columnDistance">
-            <en>Distance from spot</en>
-            <de>Entfernung zum Stellplatz</de>
-            <fr>Distance de sa place</fr>
+            <en>Distance</en>
+            <de>Entfernung</de>
+            <fr>Distance</fr>
+        </text>
+        <text name="homeSpots_showOnMap">
+            <en>Show on map</en>
+            <de>Auf Karte zeigen</de>
+            <fr>Voir sur la carte</fr>
+        </text>
+        <text name="homeSpots_removeSpot">
+            <en>Remove spot</en>
+            <de>Stellplatz entfernen</de>
+            <fr>Retirer la place</fr>
+        </text>
+        <text name="homeSpots_removeSpotQuestion">
+            <en>Remove the home spot of %s?</en>
+            <de>Den Stellplatz von %s entfernen?</de>
+            <fr>Retirer la place de %s ?</fr>
+        </text>
+        <text name="homeSpots_previewTools">
+            <en>With: %s</en>
+            <de>Mit: %s</de>
+            <fr>Avec : %s</fr>
+        </text>
+        <text name="homeSpots_summary">
+            <en>%d away, %d in use, %d home</en>
+            <de>%d unterwegs, %d in Benutzung, %d daheim</de>
+            <fr>%d absents, %d en service, %d à leur place</fr>
         </text>
         <text name="homeSpots_statusHome">
             <en>Home</en>

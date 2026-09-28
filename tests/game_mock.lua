@@ -182,6 +182,9 @@ local texts = {
     homeSpots_sendHomeFor = "send: %s",
     homeSpots_tidySoon = "soon %s",
     homeSpots_mapSendHome = "Send home",
+    homeSpots_summary = "%d away, %d in use, %d home",
+    homeSpots_previewTools = "With: %s",
+    homeSpots_removeSpotQuestion = "Remove %s?",
     homeSpots_sentHomeFor = "sent: %s",
     homeSpots_alreadyHomeFor = "home: %s",
 }
@@ -240,6 +243,7 @@ GS_PRIO_NORMAL = 2
 InputAction = {
     HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D",
     MENU_BACK = "MENU_BACK", MENU_ACCEPT = "MENU_ACCEPT", MENU_EXTRA_1 = "MENU_EXTRA_1",
+    MENU_EXTRA_2 = "MENU_EXTRA_2", MENU_CANCEL = "MENU_CANCEL",
 }
 MessageType = {HOUR_CHANGED = "hour"}
 
@@ -369,6 +373,12 @@ end
 
 InGameMenu = {}
 g_gui = {screenControllers = {}}
+
+-- The game's yes/no question: kept open until the test answers it
+YesNoDialog = {}
+function YesNoDialog.show(callback, target, text, _, _, _, _, _, _, args)
+    game.openDialog = {text = text, answer = function(isYes) game.openDialog = nil; callback(target, isYes, args) end}
+end
 function g_gui:loadGui(filename, name, controller, isFrame)
     assert(isFrame, "a menu page is loaded as a frame")
     local file = assert(io.open(filename:gsub("^" .. g_currentModDirectory, ""), "r"), "missing " .. filename)
@@ -413,6 +423,11 @@ function game.newInGameMenu()
     function menu:registerPage(page) table.insert(self.pageFrames, page) end
     function menu:addPageTab(page, iconFilename, uvs) self.tabs[page] = {iconFilename = iconFilename, uvs = uvs} end
     function menu:rebuildTabList() self.numTabRebuilds = (self.numTabRebuilds or 0) + 1 end
+    function menu:goToPage(page) self.currentPage = page end
+
+    local mapPage = menu.pageMapOverview
+    mapPage.ingameMap = {panToHotspot = function(_, hotspot) mapPage.pannedTo = hotspot end}
+    function mapPage:setMapSelectionItem(hotspot) self.selectedHotspot = hotspot end
 
     return menu
 end
@@ -434,6 +449,7 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
 
     function vehicle:getUniqueId() return self.uniqueId end
     function vehicle:getFullName() return self.name end
+    function vehicle:getMapHotspot() return self.mapHotspot end
     function vehicle:getImageFilename() return "store/" .. self.name .. ".dds" end
     function vehicle:getOwnerFarmId() return self.farmId end
     function vehicle:getRootVehicle() return self.attacher ~= nil and self.attacher:getRootVehicle() or self end

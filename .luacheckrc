@@ -51,6 +51,7 @@ read_globals = {
     "TabbedMenuFrameElement",
     "TextElement",
     "Utils",
+    "YesNoDialog",
     "addModEventListener",
     "createTransformGroup",
     "createXMLFile",

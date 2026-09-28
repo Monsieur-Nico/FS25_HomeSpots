@@ -6,6 +6,15 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+### Added
+- The Home Spots page shows the tools that come along with the selected vehicle ("With: ..."), a count
+  of what is away, in use and home above the picture, a "Remove spot" button that asks first, and a
+  "Show on map" button that opens the map with the vehicle picked.
+
+### Changed
+- A new mod icon: the Home Spots pin standing in its parking spot on a field at sunset.
+- Narrower columns on the Home Spots page, so the list also fits beside the picture on 4:3 screens.
+
 ## [1.3.0.0] - 2026-09-28
 
 ### Added
