@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
-<modDesc descVersion="92">
+<modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.1.0.7</version>
+    <version>1.1.0.8</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
-        <fr>Places de rangement</fr>
     </title>
     <description>
         <en><![CDATA[Give every vehicle and tool its own home spot, then send everything home with one key.
@@ -14,39 +13,54 @@ How to use:
 - Park a vehicle where it belongs and press Alt + J while sitting in it. The vehicle and every attached tool remember that spot.
 - On foot, look at a tool or vehicle and press Alt + J to save its spot on its own.
 - Press Alt + H, on foot or in a vehicle, to send every vehicle and tool of your farm to its home spot.
+- Press Alt + U to send only the vehicle you sit in, or the tool you look at, to its home spot. Sitting in it, you go along.
 - Press Alt + K to remove the home spot of what you sit in or look at.
 - Saved spots show as small house markers on the in-game map.
-- In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00.
+- In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
 
 Vehicles driven by you or by a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
-Single-player only for now.]]></en>
+Single-player only for now.
+
+Changelog 1.1.0.8:
+- New: Alt + U sends only the vehicle you sit in, or the tool you look at, to its home spot.
+- New: a heads-up message one in-game hour before the daily tidy-up.]]></en>
         <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
 
 So geht's:
 - Stelle ein Fahrzeug an seinen Platz und drücke Alt + J, während du darin sitzt. Fahrzeug und angehängte Geräte merken sich diesen Platz.
 - Zu Fuß: Schau ein Gerät oder Fahrzeug an und drücke Alt + J, um nur dessen Platz zu speichern.
 - Alt + H (zu Fuß oder im Fahrzeug) schickt alle Fahrzeuge und Geräte deines Hofs an ihren Stellplatz.
+- Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz. Sitzt du darin, fährst du mit.
 - Alt + K entfernt den Stellplatz dessen, worin du sitzt oder was du anschaust.
 - Gespeicherte Plätze erscheinen als kleine Haus-Symbole auf der Karte.
-- Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00.
+- Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
 
 Fahrzeuge, die du oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
 
-Vorerst nur Einzelspieler.]]></de>
+Vorerst nur Einzelspieler.
+
+Changelog 1.1.0.8:
+- Neu: Alt + U schickt nur das Fahrzeug, in dem du sitzt, oder das Gerät, das du anschaust, an seinen Stellplatz.
+- Neu: ein Hinweis eine Spielstunde vor dem täglichen Aufräumen.]]></de>
         <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
 
 Utilisation :
 - Garez un véhicule à sa place et appuyez sur Alt + J depuis le siège. Le véhicule et chaque outil attelé retiennent cet emplacement.
 - À pied, regardez un outil ou un véhicule et appuyez sur Alt + J pour enregistrer sa place à lui seul.
 - Appuyez sur Alt + H, à pied ou en véhicule, pour renvoyer tous les véhicules et outils de votre ferme à leur place.
+- Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place. Si vous êtes dedans, vous suivez.
 - Alt + K efface la place de ce que vous conduisez ou regardez.
 - Les places enregistrées apparaissent sur la carte sous forme de petites maisons.
-- Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00.
+- Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
 
 Les véhicules conduits par vous ou par un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
 
-Solo uniquement pour le moment.]]></fr>
+Solo uniquement pour le moment.
+
+Changelog 1.1.0.8 :
+- Nouveau : Alt + U renvoie seulement le véhicule que vous conduisez, ou l'outil que vous regardez, à sa place.
+- Nouveau : un message une heure de jeu avant le rangement quotidien.]]></fr>
     </description>
     <iconFilename>icon_homeSpots.dds</iconFilename>
     <multiplayer supported="false" />
@@ -61,6 +75,7 @@ Solo uniquement pour le moment.]]></fr>
 
     <actions>
         <action name="HOMESPOTS_SEND_ALL" category="ONFOOT VEHICLE" />
+        <action name="HOMESPOTS_SEND_ONE" category="ONFOOT VEHICLE" />
         <action name="HOMESPOTS_SET" category="ONFOOT VEHICLE" />
         <action name="HOMESPOTS_CLEAR" category="ONFOOT VEHICLE" />
     </actions>
@@ -68,6 +83,9 @@ Solo uniquement pour le moment.]]></fr>
     <inputBinding>
         <actionBinding action="HOMESPOTS_SEND_ALL">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_h" />
+        </actionBinding>
+        <actionBinding action="HOMESPOTS_SEND_ONE">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_u" />
         </actionBinding>
         <actionBinding action="HOMESPOTS_SET">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_j" />
@@ -82,6 +100,26 @@ Solo uniquement pour le moment.]]></fr>
             <en>Send all vehicles home</en>
             <de>Alle Fahrzeuge zum Stellplatz</de>
             <fr>Renvoyer tous les véhicules à leur place</fr>
+        </text>
+        <text name="input_HOMESPOTS_SEND_ONE">
+            <en>Send this one home</en>
+            <de>Nur dieses zum Stellplatz</de>
+            <fr>Renvoyer celui-ci à sa place</fr>
+        </text>
+        <text name="homeSpots_sendHomeFor">
+            <en>Send home: %s</en>
+            <de>Zum Stellplatz schicken: %s</de>
+            <fr>Renvoyer à sa place : %s</fr>
+        </text>
+        <text name="homeSpots_sentHomeFor">
+            <en>Sent home: %s</en>
+            <de>Zum Stellplatz geschickt: %s</de>
+            <fr>Renvoyé à sa place : %s</fr>
+        </text>
+        <text name="homeSpots_alreadyHomeFor">
+            <en>Already home: %s</en>
+            <de>Bereits am Stellplatz: %s</de>
+            <fr>Déjà à sa place : %s</fr>
         </text>
         <text name="input_HOMESPOTS_SET">
             <en>Set home spot here</en>
@@ -147,6 +185,11 @@ Solo uniquement pour le moment.]]></fr>
             <en>No home spots saved yet</en>
             <de>Noch keine Stellplätze gespeichert</de>
             <fr>Aucune place enregistrée pour le moment</fr>
+        </text>
+        <text name="homeSpots_tidySoon">
+            <en>Vehicles go home at %s</en>
+            <de>Fahrzeuge fahren um %s zum Stellplatz</de>
+            <fr>Les véhicules rentrent à leur place à %s</fr>
         </text>
         <text name="homeSpots_autoTidyPrefix">
             <en>Daily tidy-up:</en>

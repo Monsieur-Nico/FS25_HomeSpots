@@ -38,6 +38,7 @@ spot. You can also let the farm tidy itself up at a set time every day.
 | Alt + J | Set or update the home spot of what you sit in or look at |
 | Alt + K | Remove the home spot of what you sit in or look at |
 | Alt + H | Send every vehicle and tool home |
+| Alt + U | Send only what you sit in or look at home |
 
 All keys can be changed in the game's Controls menu.
 

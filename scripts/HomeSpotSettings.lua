@@ -4,13 +4,21 @@ HomeSpotSettings.optionElement = nil
 HomeSpotSettings.injectedLayout = nil
 
 
+---Returns an hour of the day as a clock time, e.g. "20:00"
+-- @param integer hour hour
+-- @return string text
+function HomeSpotSettings.formatHour(hour)
+    return string.format("%02d:00", hour)
+end
+
+
 ---Returns the texts of the time option: "Off", then every hour of the day
 -- @return table texts
 function HomeSpotSettings.getOptionTexts()
     local texts = {g_i18n:getText("homeSpots_off")}
 
     for hour = 0, 23 do
-        table.insert(texts, string.format("%02d:00", hour))
+        table.insert(texts, HomeSpotSettings.formatHour(hour))
     end
 
     return texts

@@ -21,7 +21,6 @@ HomeSpots.pendingMoves = nil
 HomeSpots.pendingReport = nil
 HomeSpots.actionEventIds = {}
 HomeSpots.shownActionState = nil
-HomeSpots.loggedErrors = {}
 
 
 ---Returns a translated text with its placeholders filled in
@@ -54,17 +53,18 @@ function HomeSpots.canHaveHomeSpot(vehicle)
 end
 
 
----Returns true if the vehicle, or whatever it is attached to, is driven by a player or an AI worker
+---Returns true if the vehicle, or whatever it is attached to, is driven by an AI worker or, unless allowed, by a player
 -- @param table vehicle vehicle
+-- @param boolean allowControlled true to let a player-driven vehicle count as free (the player picked it themselves)
 -- @return boolean isBusy
-function HomeSpots.getIsBusy(vehicle)
+function HomeSpots.getIsBusy(vehicle, allowControlled)
     local rootVehicle = vehicle:getRootVehicle()
 
     if rootVehicle.getIsAIActive ~= nil and rootVehicle:getIsAIActive() then
         return true
     end
 
-    return rootVehicle.getIsControlled ~= nil and rootVehicle:getIsControlled()
+    return not allowControlled and rootVehicle.getIsControlled ~= nil and rootVehicle:getIsControlled()
 end
 
 
@@ -235,7 +235,13 @@ end
 
 ---Action: send every vehicle and tool home
 function HomeSpots:onSendAllHomeInput()
-    HomeSpots.runSafely(HomeSpots.sendAllHome, false)
+    HomeSpots.sendAllHome(false)
+end
+
+
+---Action: send only what the player sits in or looks at home
+function HomeSpots:onSendTargetHomeInput()
+    HomeSpots.sendTargetHome()
 end
 
 
@@ -288,11 +294,31 @@ function HomeSpots.resolveBlockedSpots(moves, staticAreas)
 end
 
 
----Send every vehicle and tool of the player's farm to its home spot.
--- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
--- Tools without a home spot are unhooked and left where they are.
+---Send every vehicle and tool of the player's farm to its home spot
 -- @param boolean isAutomatic true when triggered by the daily send-home time
 function HomeSpots.sendAllHome(isAutomatic)
+    HomeSpots.sendHome(g_currentMission.vehicleSystem.vehicles, isAutomatic, false)
+end
+
+
+---Send only the combination the player sits in, or the vehicle or tool the player looks at, to its home spot.
+-- The player picked it, so a vehicle the player drives goes too, with the player in it.
+function HomeSpots.sendTargetHome()
+    local vehicles = HomeSpots.getTargetVehicles()
+
+    if #vehicles > 0 then
+        HomeSpots.sendHome(vehicles, false, true)
+    end
+end
+
+
+---Send vehicles of the player's farm to their home spots.
+-- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
+-- Tools without a home spot are unhooked and left where they are.
+-- @param table vehicles vehicles to send home, those without a home spot are skipped
+-- @param boolean isAutomatic true when triggered by the daily send-home time
+-- @param boolean isTargeted true when the player picked these vehicles, the report then names them
+function HomeSpots.sendHome(vehicles, isAutomatic, isTargeted)
     if not g_currentMission:getIsServer() then
         if not isAutomatic then
             HomeSpots.notify(HomeSpots.getText("homeSpots_singlePlayerOnly"))
@@ -308,20 +334,20 @@ function HomeSpots.sendAllHome(isAutomatic)
     local candidates = {}
     local isMoving = {}
     local numBusy = 0
-    local numAtHome = 0
+    local atHome = {}
 
-    for _, vehicle in ipairs(g_currentMission.vehicleSystem.vehicles) do
+    for _, vehicle in ipairs(vehicles) do
         local components = HomeSpots.store:get(vehicle)
 
         if components ~= nil and vehicle:getOwnerFarmId() == farmId and HomeSpots.canHaveHomeSpot(vehicle) then
-            if HomeSpots.getIsBusy(vehicle) then
+            if HomeSpots.getIsBusy(vehicle, isTargeted) then
                 numBusy = numBusy + 1
             elseif #components == #vehicle.components then
                 local homeArea = HomeSpots.getHomeArea(vehicle, components)
                 local currentArea = HomeSpotArea.newFromNode(vehicle.size, vehicle.rootNode)
 
                 if HomeSpotArea.getIsSamePose(homeArea, currentArea, HomeSpots.AT_HOME_DISTANCE, HomeSpots.AT_HOME_ANGLE) then
-                    numAtHome = numAtHome + 1
+                    table.insert(atHome, vehicle)
                 else
                     table.insert(candidates, {
                         vehicle = vehicle,
@@ -335,8 +361,8 @@ function HomeSpots.sendAllHome(isAutomatic)
         end
     end
 
-    if #candidates == 0 and numBusy == 0 and numAtHome == 0 then
-        if not isAutomatic then
+    if #candidates == 0 and numBusy == 0 and #atHome == 0 then
+        if not isAutomatic and not isTargeted then
             HomeSpots.notify(HomeSpots.getText("homeSpots_none"))
         end
         return
@@ -356,7 +382,7 @@ function HomeSpots.sendAllHome(isAutomatic)
     end
 
     HomeSpots.pendingMoves = accepted
-    HomeSpots.pendingReport = {isAutomatic = isAutomatic, numBusy = numBusy, numAtHome = numAtHome, blocked = blocked}
+    HomeSpots.pendingReport = {isAutomatic = isAutomatic, isTargeted = isTargeted, numBusy = numBusy, atHome = atHome, blocked = blocked}
 end
 
 
@@ -442,10 +468,10 @@ function HomeSpots.processPendingMoves()
 
     HomeSpots.pendingMoves = nil
 
-    local numMoved = 0
+    local moved = {}
     for _, move in ipairs(moves) do
         if HomeSpots.moveToHomeSpot(move.vehicle, move.components) then
-            numMoved = numMoved + 1
+            table.insert(moved, move.vehicle)
         end
     end
 
@@ -453,12 +479,21 @@ function HomeSpots.processPendingMoves()
     HomeSpots.pendingReport = nil
 
     local parts = {}
-    if numMoved > 0 or report.numAtHome == 0 then
-        table.insert(parts, HomeSpots.getText("homeSpots_sentHome", numMoved))
-    end
-    if report.numAtHome > 0 then
-        local isAllHome = numMoved == 0 and report.numBusy == 0 and #report.blocked == 0
-        table.insert(parts, isAllHome and HomeSpots.getText("homeSpots_allHome") or HomeSpots.getText("homeSpots_alreadyHome", report.numAtHome))
+    if report.isTargeted then
+        if #moved > 0 then
+            table.insert(parts, HomeSpots.getText("homeSpots_sentHomeFor", HomeSpots.getVehicleNames(moved, HomeSpots.MAX_NAMES_LISTED)))
+        end
+        if #report.atHome > 0 then
+            table.insert(parts, HomeSpots.getText("homeSpots_alreadyHomeFor", HomeSpots.getVehicleNames(report.atHome, HomeSpots.MAX_NAMES_LISTED)))
+        end
+    else
+        if #moved > 0 or #report.atHome == 0 then
+            table.insert(parts, HomeSpots.getText("homeSpots_sentHome", #moved))
+        end
+        if #report.atHome > 0 then
+            local isAllHome = #moved == 0 and report.numBusy == 0 and #report.blocked == 0
+            table.insert(parts, isAllHome and HomeSpots.getText("homeSpots_allHome") or HomeSpots.getText("homeSpots_alreadyHome", #report.atHome))
+        end
     end
     if report.numBusy > 0 then
         table.insert(parts, HomeSpots.getText("homeSpots_inUse", report.numBusy))
@@ -517,11 +552,13 @@ end
 
 
 ---Keep the help entries in line with what the player sits in or looks at:
--- "Set" only shows with a target and reads "Update" once it has a home spot, "Remove" only shows when there is one to remove.
+-- "Set" only shows with a target and reads "Update" once it has a home spot,
+-- "Send home" and "Remove" only show when the target has a home spot.
 function HomeSpots.updateActionEvents()
     local setEventId = HomeSpots.actionEventIds.HOMESPOTS_SET
     local clearEventId = HomeSpots.actionEventIds.HOMESPOTS_CLEAR
-    if setEventId == nil or clearEventId == nil then
+    local sendEventId = HomeSpots.actionEventIds.HOMESPOTS_SEND_ONE
+    if setEventId == nil or clearEventId == nil or sendEventId == nil then
         return
     end
 
@@ -536,9 +573,11 @@ function HomeSpots.updateActionEvents()
     local hasTarget = #vehicles > 0
     local hasSpot = #vehiclesWithSpot > 0
     local setText = HomeSpots.getText(hasSpot and "homeSpots_updateFor" or "homeSpots_setFor", HomeSpots.getVehicleNames(vehicles, HomeSpots.MAX_NAMES_IN_PROMPT))
-    local clearText = HomeSpots.getText("homeSpots_clearFor", HomeSpots.getVehicleNames(vehiclesWithSpot, HomeSpots.MAX_NAMES_IN_PROMPT))
+    local spotNames = HomeSpots.getVehicleNames(vehiclesWithSpot, HomeSpots.MAX_NAMES_IN_PROMPT)
+    local clearText = HomeSpots.getText("homeSpots_clearFor", spotNames)
+    local sendText = HomeSpots.getText("homeSpots_sendHomeFor", spotNames)
 
-    local state = table.concat({tostring(setEventId), tostring(hasTarget), setText, clearText}, "|")
+    local state = table.concat({tostring(setEventId), tostring(hasTarget), setText, clearText, sendText}, "|")
     if state == HomeSpots.shownActionState then
         return
     end
@@ -548,31 +587,16 @@ function HomeSpots.updateActionEvents()
     g_inputBinding:setActionEventText(setEventId, setText)
     g_inputBinding:setActionEventText(clearEventId, clearText)
     g_inputBinding:setActionEventActive(clearEventId, hasSpot)
-end
-
-
----Run a function and log its error (once per distinct message) instead of letting it stop the game loop
--- @param function func function
--- @param any ... arguments
-function HomeSpots.runSafely(func, ...)
-    local success, errorMessage = pcall(func, ...)
-
-    if not success then
-        errorMessage = tostring(errorMessage)
-
-        if not HomeSpots.loggedErrors[errorMessage] then
-            HomeSpots.loggedErrors[errorMessage] = true
-            Logging.error("Home Spots: %s", errorMessage)
-        end
-    end
+    g_inputBinding:setActionEventText(sendEventId, sendText)
+    g_inputBinding:setActionEventActive(sendEventId, hasSpot)
 end
 
 
 ---Mod event listener update
 -- @param float dt time since last frame in ms
 function HomeSpots:update(dt)
-    HomeSpots.runSafely(HomeSpots.updateActionEvents)
-    HomeSpots.runSafely(HomeSpots.processPendingMoves)
+    HomeSpots.updateActionEvents()
+    HomeSpots.processPendingMoves()
 end
 
 
@@ -591,9 +615,12 @@ function HomeSpots.registerActionEvent(actionName, callback)
 end
 
 
----Register all of the mod's keys
-function HomeSpots.registerAllActionEvents()
+---Register all of the mod's keys. Called by the game on foot and in a vehicle, in the middle of registering the player's own keys.
+-- @param table inputComponent player input component
+-- @param string contextName input context name
+function HomeSpots.registerGlobalActionEvents(inputComponent, contextName)
     HomeSpots.registerActionEvent("HOMESPOTS_SEND_ALL", HomeSpots.onSendAllHomeInput)
+    HomeSpots.registerActionEvent("HOMESPOTS_SEND_ONE", HomeSpots.onSendTargetHomeInput)
     HomeSpots.registerActionEvent("HOMESPOTS_SET", HomeSpots.onSetHomeInput)
     HomeSpots.registerActionEvent("HOMESPOTS_CLEAR", HomeSpots.onClearHomeInput)
 
@@ -601,35 +628,26 @@ function HomeSpots.registerAllActionEvents()
 end
 
 
----Called by the game on foot and in a vehicle, in the middle of registering the player's own keys.
--- Runs safely so a failure here can never leave the player without movement keys.
--- @param table inputComponent player input component
--- @param string contextName input context name
-function HomeSpots.registerGlobalActionEvents(inputComponent, contextName)
-    HomeSpots.runSafely(HomeSpots.registerAllActionEvents)
-end
-
-
----Send everything home when the chosen hour starts
+---Send everything home when the chosen hour starts, with a heads-up one hour before
 function HomeSpots:onHourChanged()
     local hour = HomeSpots.store.autoTidyHour
+    if hour == HomeSpotStore.AUTO_TIDY_OFF then
+        return
+    end
 
-    if hour ~= HomeSpotStore.AUTO_TIDY_OFF and g_currentMission.environment.currentHour == hour then
-        HomeSpots.runSafely(HomeSpots.sendAllHome, true)
+    local currentHour = g_currentMission.environment.currentHour
+
+    if currentHour == hour then
+        HomeSpots.sendAllHome(true)
+    elseif currentHour == (hour - 1) % 24 and HomeSpots.store:getCount() > 0 then
+        HomeSpots.notify(HomeSpots.getText("homeSpots_tidySoon", HomeSpotSettings.formatHour(hour)), FSBaseMission.INGAME_NOTIFICATION_INFO)
     end
 end
 
 
----Load home spots once the savegame folder is known
+---Set up the mod for a savegame once its folder is known: helper node, saved spots, map markers and the daily send-home time
 -- @param table mission mission
 function HomeSpots.onMissionLoaded(mission)
-    HomeSpots.runSafely(HomeSpots.loadMission, mission)
-end
-
-
----Set up the mod for a savegame: helper node, saved spots, map markers and the daily send-home time
--- @param table mission mission
-function HomeSpots.loadMission(mission)
     HomeSpots.store:reset()
     HomeSpots.pendingMoves = nil
     HomeSpots.helperNode = createTransformGroup("homeSpotsHelper")
@@ -647,16 +665,9 @@ function HomeSpots.loadMission(mission)
 end
 
 
----Save home spots next to the rest of the savegame
+---Write homeSpots.xml into the folder the game is saving to, next to the rest of the savegame
 -- @param table missionInfo career mission info
 function HomeSpots.onSaveCareer(missionInfo)
-    HomeSpots.runSafely(HomeSpots.saveCareer, missionInfo)
-end
-
-
----Write homeSpots.xml into the folder the game is saving to
--- @param table missionInfo career mission info
-function HomeSpots.saveCareer(missionInfo)
     if g_currentMission == nil or not g_currentMission:getIsServer() or missionInfo.savegameDirectory == nil then
         return
     end
@@ -669,10 +680,7 @@ end
 ---Add the send-home time option whenever the settings page opens
 -- @param table settingsFrame in-game menu settings frame
 function HomeSpots.onSettingsFrameOpen(settingsFrame)
-    local success, errorMessage = pcall(HomeSpotSettings.inject, settingsFrame)
-    if not success then
-        Logging.warning("Home Spots: could not add the settings option (%s)", tostring(errorMessage))
-    end
+    HomeSpotSettings.inject(settingsFrame)
 end
 
 

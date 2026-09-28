@@ -46,9 +46,11 @@ Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:
 
 ## Releasing
 
-1. Update `<version>` in `modDesc.xml`.
+1. Update `<version>` in `modDesc.xml` and the "Changelog" lines at the end of each `<description>` language.
 2. Move the "Unreleased" notes in `CHANGELOG.md` under a new version heading and add its compare link.
-3. Commit and push, then either tag and push (`git tag v1.1.0.8 && git push origin v1.1.0.8`) or start the
+3. Build the zip and run the GIANTS TestRunner (from the GDN downloads page, needs the GIANTS Editor installed)
+   on it by dragging the zip onto `TestRunner_public.exe`. The report must come back without errors.
+4. Commit and push, then either tag and push (`git tag v1.1.0.8 && git push origin v1.1.0.8`) or start the
    Release workflow from the Actions tab with "Run workflow", which creates the tag from the `modDesc.xml` version.
 
 The release workflow checks that the tag matches `modDesc.xml`, runs the checks, builds `FS25_HomeSpots.zip`

@@ -6,6 +6,18 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+### Added
+- Alt + U sends only what you sit in, or the tool or vehicle you look at, to its home spot. Sitting in it,
+  you ride along; a tool looked at on foot is unhooked from whatever pulls it. The help panel shows
+  "Send home: <name>" whenever the target has a home spot.
+- One in-game hour before the daily tidy-up, a message says when vehicles go home, e.g. "Vehicles go home at 20:00".
+
+### Changed
+- The mod icon is 512 × 512 and DXT1, the map marker DXT5, as the GIANTS TestRunner requires.
+- `modDesc.xml` uses descVersion 113 and its description ends with a changelog.
+- The title is "Home Spots" in French too (falls back to the English title).
+- Errors are no longer caught and hidden; they show in `log.txt` with the game's own stack trace.
+
 ## [1.1.0.7] - 2026-09-28
 
 ### Added

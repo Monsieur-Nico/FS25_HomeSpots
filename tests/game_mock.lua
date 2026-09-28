@@ -112,6 +112,10 @@ local texts = {
     homeSpots_autoTidyPrefix = "Auto:",
     homeSpots_alreadyHome = "home %d",
     homeSpots_allHome = "all home",
+    homeSpots_sendHomeFor = "send: %s",
+    homeSpots_tidySoon = "soon %s",
+    homeSpots_sentHomeFor = "sent: %s",
+    homeSpots_alreadyHomeFor = "home: %s",
 }
 
 g_i18n = {getText = function(_, name) return texts[name] or name end}
@@ -131,7 +135,7 @@ Utils = {
 g_currentModDirectory = "/mods/FS25_HomeSpots/"
 g_currentModName = "FS25_HomeSpots"
 GS_PRIO_NORMAL = 2
-InputAction = {HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C"}
+InputAction = {HOMESPOTS_SEND_ALL = "A", HOMESPOTS_SET = "B", HOMESPOTS_CLEAR = "C", HOMESPOTS_SEND_ONE = "D"}
 MessageType = {HOUR_CHANGED = "hour"}
 
 function addModEventListener() end
@@ -186,7 +190,7 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
     function vehicle:getRootVehicle() return self.attacher ~= nil and self.attacher:getRootVehicle() or self end
     function vehicle:getAttacherVehicle() return self.attacher end
     function vehicle:getAttachedImplements() return self.implements end
-    function vehicle:getIsAIActive() return false end
+    function vehicle:getIsAIActive() return self.isAIActive == true end
     function vehicle:getIsControlled() return self.isControlled == true end
     function vehicle:removeFromPhysics() end
     function vehicle:addToPhysics() end

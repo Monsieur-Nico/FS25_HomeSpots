@@ -150,9 +150,15 @@ end)
 
 test("daily tidy-up runs at the chosen hour only", function()
     game.place(tractor, 800, 0)
+    game.fireHourChanged(18)
+    HomeSpots:update(16)
+    assert(game.lastNotification() ~= "soon 20:00", "no heads-up two hours before")
+
     game.fireHourChanged(19)
     HomeSpots:update(16)
     assertEquals(getX(tractor), 800, "before the hour")
+    assertEquals(game.lastNotification(), "soon 20:00", "heads-up one hour before")
+    assertEquals(game.notifications[#game.notifications][1], FSBaseMission.INGAME_NOTIFICATION_INFO, "heads-up type")
 
     game.fireHourChanged(20)
     HomeSpots:update(16)
@@ -357,6 +363,88 @@ test("prompt clears as soon as the player looks away", function()
     lookRay = {300, 294, 0, -1}
     HomeSpots:update(16)
     assertEquals(events[ids.HOMESPOTS_SET].active, false, "hidden after looking away")
+end)
+
+test("heads-up for a midnight tidy-up comes at 23:00", function()
+    HomeSpots.store.autoTidyHour = 0
+    game.fireHourChanged(23)
+    assertEquals(game.lastNotification(), "soon 00:00")
+    HomeSpots.store.autoTidyHour = 20
+end)
+
+local function sendTargetHome()
+    HomeSpots:onSendTargetHomeInput()
+    HomeSpots:update(16)
+end
+
+test("send this one home from the seat moves only that combination, with the player", function()
+    lookRay = {300, 294, 0, -1}
+    tractor.implements = {{object = plough}}
+    plough.attacher = tractor
+    tractor.isControlled = true
+    game.currentVehicle = tractor
+    game.place(tractor, 600, 0)
+    game.place(plough, 600, -6)
+    game.place(trailer, 620, 0)
+    game.place(car, 200, 200)
+
+    sendTargetHome()
+    assertEquals(getX(tractor), 10, "tractor")
+    assertEquals(getX(plough), 10, "plough")
+    assertEquals(getX(trailer), 620, "trailer stays")
+    assertEquals(game.lastNotification(), "sent: Fendt, Plough")
+    tractor.isControlled = false
+end)
+
+test("send this one home on foot unhooks and moves only the looked at tool", function()
+    HomeSpots.store:set(trailer)
+    game.place(trailer, 30, 0)
+    tractor.implements = {{object = plough}}
+    plough.attacher = tractor
+    game.place(tractor, 650, 0)
+    game.place(plough, 650, -6)
+    game.currentVehicle = nil
+    game.collisionHitNode = plough.rootNode
+
+    sendTargetHome()
+    assertEquals(getX(plough), 10, "plough")
+    assertEquals(getX(tractor), 650, "tractor stays")
+    assertEquals(plough.attacher, nil, "plough unhooked")
+    assertEquals(game.lastNotification(), "sent: Plough")
+end)
+
+test("send this one home says when it is already home", function()
+    sendTargetHome()
+    assertEquals(getX(plough), 10, "plough")
+    assertEquals(game.lastNotification(), "home: Plough")
+end)
+
+test("send this one home leaves a worker's vehicle alone", function()
+    game.place(tractor, 650, 0)
+    tractor.isAIActive = true
+    game.currentVehicle = tractor
+    game.collisionHitNode = nil
+
+    sendTargetHome()
+    assertEquals(getX(tractor), 650, "tractor")
+    assertEquals(game.lastNotification(), "inuse 1")
+    tractor.isAIActive = false
+end)
+
+test("send this one home only shows for something with a home spot", function()
+    HomeSpots.registerGlobalActionEvents(nil, nil)
+    local events, ids = game.actionEvents, HomeSpots.actionEventIds
+    game.currentVehicle = nil
+
+    game.collisionHitNode = car.rootNode
+    HomeSpots:update(16)
+    assertEquals(events[ids.HOMESPOTS_SEND_ONE].active, false, "hidden without spot")
+
+    game.collisionHitNode = trailer.rootNode
+    HomeSpots:update(16)
+    assert(events[ids.HOMESPOTS_SEND_ONE].active, "shown with spot")
+    assertEquals(events[ids.HOMESPOTS_SEND_ONE].text, "send: Trailer")
+    game.collisionHitNode = nil
 end)
 
 print(string.format("\n%d passed, %d failed", numPassed, numFailed))
