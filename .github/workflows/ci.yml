@@ -33,7 +33,7 @@ jobs:
         run: bash tools/build.sh
 
       - name: Upload mod zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FS25_HomeSpots
           path: dist/FS25_HomeSpots.zip
