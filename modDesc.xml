@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="92">
+    <author>Monsieur-Nico</author>
+    <version>1.1.0.7</version>
+    <title>
+        <en>Home Spots</en>
+        <de>Stellplätze</de>
+        <fr>Places de rangement</fr>
+    </title>
+    <description>
+        <en><![CDATA[Give every vehicle and tool its own home spot, then send everything home with one key.
+
+How to use:
+- Park a vehicle where it belongs and press Alt + J while sitting in it. The vehicle and every attached tool remember that spot.
+- On foot, look at a tool or vehicle and press Alt + J to save its spot on its own.
+- Press Alt + H, on foot or in a vehicle, to send every vehicle and tool of your farm to its home spot.
+- Press Alt + K to remove the home spot of what you sit in or look at.
+- Saved spots show as small house markers on the in-game map.
+- In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00.
+
+Vehicles driven by you or by a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
+
+Single-player only for now.]]></en>
+        <de><![CDATA[Gib jedem Fahrzeug und Gerät einen eigenen Stellplatz und schicke mit einer Taste alles nach Hause.
+
+So geht's:
+- Stelle ein Fahrzeug an seinen Platz und drücke Alt + J, während du darin sitzt. Fahrzeug und angehängte Geräte merken sich diesen Platz.
+- Zu Fuß: Schau ein Gerät oder Fahrzeug an und drücke Alt + J, um nur dessen Platz zu speichern.
+- Alt + H (zu Fuß oder im Fahrzeug) schickt alle Fahrzeuge und Geräte deines Hofs an ihren Stellplatz.
+- Alt + K entfernt den Stellplatz dessen, worin du sitzt oder was du anschaust.
+- Gespeicherte Plätze erscheinen als kleine Haus-Symbole auf der Karte.
+- Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00.
+
+Fahrzeuge, die du oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
+
+Vorerst nur Einzelspieler.]]></de>
+        <fr><![CDATA[Donnez à chaque véhicule et à chaque outil sa propre place, puis renvoyez tout à sa place d'une seule touche.
+
+Utilisation :
+- Garez un véhicule à sa place et appuyez sur Alt + J depuis le siège. Le véhicule et chaque outil attelé retiennent cet emplacement.
+- À pied, regardez un outil ou un véhicule et appuyez sur Alt + J pour enregistrer sa place à lui seul.
+- Appuyez sur Alt + H, à pied ou en véhicule, pour renvoyer tous les véhicules et outils de votre ferme à leur place.
+- Alt + K efface la place de ce que vous conduisez ou regardez.
+- Les places enregistrées apparaissent sur la carte sous forme de petites maisons.
+- Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00.
+
+Les véhicules conduits par vous ou par un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
+
+Solo uniquement pour le moment.]]></fr>
+    </description>
+    <iconFilename>icon_homeSpots.dds</iconFilename>
+    <multiplayer supported="false" />
+
+    <extraSourceFiles>
+        <sourceFile filename="scripts/HomeSpotArea.lua" />
+        <sourceFile filename="scripts/HomeSpotStore.lua" />
+        <sourceFile filename="scripts/HomeSpotHotspot.lua" />
+        <sourceFile filename="scripts/HomeSpotSettings.lua" />
+        <sourceFile filename="scripts/HomeSpots.lua" />
+    </extraSourceFiles>
+
+    <actions>
+        <action name="HOMESPOTS_SEND_ALL" category="ONFOOT VEHICLE" />
+        <action name="HOMESPOTS_SET" category="ONFOOT VEHICLE" />
+        <action name="HOMESPOTS_CLEAR" category="ONFOOT VEHICLE" />
+    </actions>
+
+    <inputBinding>
+        <actionBinding action="HOMESPOTS_SEND_ALL">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_h" />
+        </actionBinding>
+        <actionBinding action="HOMESPOTS_SET">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_j" />
+        </actionBinding>
+        <actionBinding action="HOMESPOTS_CLEAR">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_k" />
+        </actionBinding>
+    </inputBinding>
+
+    <l10n>
+        <text name="input_HOMESPOTS_SEND_ALL">
+            <en>Send all vehicles home</en>
+            <de>Alle Fahrzeuge zum Stellplatz</de>
+            <fr>Renvoyer tous les véhicules à leur place</fr>
+        </text>
+        <text name="input_HOMESPOTS_SET">
+            <en>Set home spot here</en>
+            <de>Stellplatz hier festlegen</de>
+            <fr>Définir la place ici</fr>
+        </text>
+        <text name="homeSpots_setFor">
+            <en>Set home spot: %s</en>
+            <de>Stellplatz festlegen: %s</de>
+            <fr>Définir la place : %s</fr>
+        </text>
+        <text name="homeSpots_updateFor">
+            <en>Update home spot: %s</en>
+            <de>Stellplatz aktualisieren: %s</de>
+            <fr>Mettre à jour la place : %s</fr>
+        </text>
+        <text name="homeSpots_clearFor">
+            <en>Remove home spot: %s</en>
+            <de>Stellplatz entfernen: %s</de>
+            <fr>Effacer la place : %s</fr>
+        </text>
+        <text name="input_HOMESPOTS_CLEAR">
+            <en>Remove home spot</en>
+            <de>Stellplatz entfernen</de>
+            <fr>Effacer la place</fr>
+        </text>
+        <text name="homeSpots_saved">
+            <en>Home spot saved: %s</en>
+            <de>Stellplatz gespeichert: %s</de>
+            <fr>Place enregistrée : %s</fr>
+        </text>
+        <text name="homeSpots_cleared">
+            <en>Home spot removed: %s</en>
+            <de>Stellplatz entfernt: %s</de>
+            <fr>Place effacée : %s</fr>
+        </text>
+        <text name="homeSpots_sentHome">
+            <en>%d vehicle(s) sent home</en>
+            <de>%d Fahrzeug(e) zum Stellplatz geschickt</de>
+            <fr>%d véhicule(s) renvoyé(s) à leur place</fr>
+        </text>
+        <text name="homeSpots_alreadyHome">
+            <en>%d already home</en>
+            <de>%d bereits am Stellplatz</de>
+            <fr>%d déjà à leur place</fr>
+        </text>
+        <text name="homeSpots_allHome">
+            <en>Everything is already home</en>
+            <de>Alles steht bereits am Stellplatz</de>
+            <fr>Tout est déjà à sa place</fr>
+        </text>
+        <text name="homeSpots_inUse">
+            <en>%d in use left where they are</en>
+            <de>%d in Benutzung bleiben stehen</de>
+            <fr>%d en cours d'utilisation laissé(s) sur place</fr>
+        </text>
+        <text name="homeSpots_blocked">
+            <en>Spot taken, left where they are: %s</en>
+            <de>Platz belegt, bleiben stehen: %s</de>
+            <fr>Place occupée, laissé(s) sur place : %s</fr>
+        </text>
+        <text name="homeSpots_none">
+            <en>No home spots saved yet</en>
+            <de>Noch keine Stellplätze gespeichert</de>
+            <fr>Aucune place enregistrée pour le moment</fr>
+        </text>
+        <text name="homeSpots_autoTidyPrefix">
+            <en>Daily tidy-up:</en>
+            <de>Tägliches Aufräumen:</de>
+            <fr>Rangement quotidien :</fr>
+        </text>
+        <text name="homeSpots_mapMarker">
+            <en>Home spot: %s</en>
+            <de>Stellplatz: %s</de>
+            <fr>Place : %s</fr>
+        </text>
+        <text name="homeSpots_settingsSection">
+            <en>Home Spots</en>
+            <de>Stellplätze</de>
+            <fr>Places de rangement</fr>
+        </text>
+        <text name="homeSpots_autoTidy">
+            <en>Send vehicles home at</en>
+            <de>Fahrzeuge heimschicken um</de>
+            <fr>Renvoyer les véhicules à</fr>
+        </text>
+        <text name="homeSpots_autoTidy_tooltip">
+            <en>Every day at this time, every vehicle and tool with a home spot is sent back to it. Saved with this savegame.</en>
+            <de>Jeden Tag zu dieser Uhrzeit werden alle Fahrzeuge und Geräte mit Stellplatz dorthin zurückgeschickt. Wird mit diesem Spielstand gespeichert.</de>
+            <fr>Chaque jour à cette heure, chaque véhicule et outil ayant une place y est renvoyé. Enregistré avec cette partie.</fr>
+        </text>
+        <text name="homeSpots_off">
+            <en>Off</en>
+            <de>Aus</de>
+            <fr>Désactivé</fr>
+        </text>
+        <text name="homeSpots_singlePlayerOnly">
+            <en>Home Spots only works in single-player for now</en>
+            <de>Stellplätze funktionieren vorerst nur im Einzelspieler</de>
+            <fr>Places de rangement ne fonctionne qu'en solo pour le moment</fr>
+        </text>
+    </l10n>
+</modDesc>

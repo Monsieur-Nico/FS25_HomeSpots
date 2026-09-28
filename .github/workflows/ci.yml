@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, test and build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1, luacheck and xmllint
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q lua5.1 lua-check libxml2-utils zip
+
+      - name: Lint Lua
+        run: luacheck scripts tests
+
+      - name: Validate modDesc.xml
+        run: xmllint --noout modDesc.xml
+
+      - name: Run tests
+        run: lua5.1 tests/run.lua
+
+      - name: Build mod zip
+        run: bash tools/build.sh
+
+      - name: Upload mod zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: FS25_HomeSpots
+          path: dist/FS25_HomeSpots.zip
+          if-no-files-found: error

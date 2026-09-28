@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in Home Spots does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: Shown in the mod list, or in log.txt on the line "Available mod ... FS25_HomeSpots".
+      placeholder: 1.1.0.7
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version and platform
+      placeholder: FS25 1.x, PC (Steam)
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: log.txt
+      description: >
+        Attach log.txt from Documents/My Games/FarmingSimulator2025 right after the problem happens,
+        before starting the game again. Lines starting with "Home Spots:" are the most useful.
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other mods that might be involved
+      description: For example mods that change the map screen, the settings menu or vehicle parking.

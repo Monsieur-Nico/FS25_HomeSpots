@@ -1,0 +1,15 @@
+name: Feature request
+description: Suggest an idea for Home Spots
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Home Spots to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: When would you use it?
+      description: A short example from your own farm helps.
