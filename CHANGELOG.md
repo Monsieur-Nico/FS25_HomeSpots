@@ -6,6 +6,14 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.5.0.0] - 2026-09-28
+
+### Added
+- A "Realism fee" setting: pay for each vehicle sent home, per km of the way back, as if a worker had driven it there.
+  Off by default; Low, Normal and High cost 25, 50 and 100 per km, scaled by the economic difficulty like worker
+  wages, and show up as wages in the finances. Tools hooked to a vehicle that goes home ride along for free. When
+  the farm can't pay, the vehicle stays and the player is told the price.
+
 ## [1.4.0.0] - 2026-09-28
 
 ### Added
@@ -106,7 +114,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.4.0.0...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.5.0.0...HEAD
+[1.5.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.4.0.0...v1.5.0.0
 [1.4.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.3.0.0...v1.4.0.0
 [1.3.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.2.0.0...v1.3.0.0
 [1.2.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.1.0.9...v1.2.0.0
