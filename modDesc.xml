@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.6.0.0</version>
+    <version>1.7.0.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -21,9 +21,14 @@ How to use:
 - In the settings menu, pick a time of day to send everything home automatically, for example every evening at 20:00. One in-game hour before, a message gives you a heads-up.
 - For more realism, turn on the realism fee in the settings: each vehicle sent home costs a price per km, as if a worker had driven it back.
 
-Vehicles driven by you, another player or a worker are left alone. If something else is parked on a vehicle's spot, that vehicle stays where it is and you are told which one. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
+Vehicles driven by you, another player or a worker are left alone. If something else is parked on a vehicle's spot, or a building or tree stands in it, that vehicle parks in the nearest free space beside it, or stays where it is when there is none, and you are told which. When you save a spot that overlaps another vehicle's spot, you are asked first. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
 Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
+
+Changelog 1.7.0.0:
+- New: a vehicle whose home spot is taken, or runs into a wall or a tree, now parks in the nearest free space beside it instead of staying where it is.
+- New: saving a home spot that overlaps another vehicle's home spot asks you first.
+- Changed: Park in a shed (Alt + N) now fills the whole shed, line by line from the left: machines that drive themselves in front, tools directly behind them, snug against walls and columns.
 
 Changelog 1.6.0.0:
 - New: Alt + N parks what you sit in or look at in your nearest shed, under the roof and clear of walls, pallets and other vehicles, and makes that its home spot.
@@ -49,9 +54,14 @@ So geht's:
 - Im Einstellungsmenü kannst du eine Uhrzeit wählen, zu der automatisch alles nach Hause geschickt wird, z. B. jeden Abend um 20:00. Eine Spielstunde vorher erscheint ein Hinweis.
 - Für mehr Realismus schalte in den Einstellungen die Realismus-Gebühr ein: Jedes heimgeschickte Fahrzeug kostet einen Preis pro km, als hätte ein Helfer es zurückgefahren.
 
-Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs, bleibt es, wo es ist, und du erfährst, welches. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
+Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben stehen. Steht etwas anderes auf dem Platz eines Fahrzeugs oder ein Gebäude oder Baum darin, wird es auf dem nächsten freien Platz daneben abgestellt, oder bleibt stehen, wenn keiner frei ist, und du erfährst, welches. Überschneidet sich ein neuer Stellplatz mit dem eines anderen Fahrzeugs, wirst du vorher gefragt. Geräte ohne Stellplatz werden abgekuppelt und bleiben, wo sie sind. Alle Tasten lassen sich im Steuerungsmenü ändern.
 
 Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
+
+Changelog 1.7.0.0:
+- Neu: Ein Fahrzeug, dessen Stellplatz belegt ist oder in eine Wand oder einen Baum ragt, wird jetzt auf dem nächsten freien Platz daneben abgestellt, statt stehen zu bleiben.
+- Neu: Ein Stellplatz, der sich mit dem eines anderen Fahrzeugs überschneidet, wird erst nach Rückfrage gespeichert.
+- Geändert: In einem Schuppen parken (Alt + N) nutzt jetzt den ganzen Schuppen: Zeile für Zeile von links, selbstfahrende Maschinen vorne, Geräte direkt dahinter, dicht an Wänden und Stützen.
 
 Changelog 1.6.0.0:
 - Neu: Alt + N stellt ab, worin du sitzt oder was du anschaust, in deiner nächsten Halle, unter dem Dach und ohne Wände, Paletten und andere Fahrzeuge, und macht das zu seinem Stellplatz.
@@ -77,9 +87,14 @@ Utilisation :
 - Dans le menu des paramètres, choisissez une heure pour tout renvoyer automatiquement, par exemple chaque soir à 20:00. Un message vous prévient une heure de jeu avant.
 - Pour plus de réalisme, activez les frais réalistes dans les paramètres : chaque véhicule renvoyé coûte un prix par km, comme si un ouvrier l'avait ramené.
 
-Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, celui-ci reste où il est et vous savez lequel. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
+Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. Si quelque chose occupe la place d'un véhicule, ou qu'un bâtiment ou un arbre s'y trouve, celui-ci se gare dans l'espace libre le plus proche à côté, ou reste où il est s'il n'y en a pas, et vous savez lequel. Enregistrer une place qui chevauche celle d'un autre véhicule demande d'abord confirmation. Les outils sans place sont dételés et restent où ils sont. Toutes les touches se changent dans le menu Commandes.
 
 Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
+
+Changelog 1.7.0.0 :
+- Nouveau : un véhicule dont la place est prise, ou touche un mur ou un arbre, se gare désormais dans l'espace libre le plus proche à côté au lieu de rester sur place.
+- Nouveau : enregistrer une place qui chevauche celle d'un autre véhicule demande d'abord confirmation.
+- Modifié : Se garer dans un hangar (Alt + N) utilise désormais tout le hangar : ligne par ligne depuis la gauche, machines automotrices devant, outils juste derrière, serrés contre les murs et les poteaux.
 
 Changelog 1.6.0.0 :
 - Nouveau : Alt + N gare ce que vous conduisez ou regardez dans votre hangar le plus proche, sous le toit et sans murs, palettes ni autres véhicules, et en fait sa place.
@@ -100,6 +115,7 @@ Changelog 1.5.0.0 :
         <sourceFile filename="scripts/HomeSpotStore.lua" />
         <sourceFile filename="scripts/HomeSpotFee.lua" />
         <sourceFile filename="scripts/HomeSpotShed.lua" />
+        <sourceFile filename="scripts/HomeSpotNearby.lua" />
         <sourceFile filename="scripts/HomeSpotHotspot.lua" />
         <sourceFile filename="scripts/HomeSpotSettings.lua" />
         <sourceFile filename="scripts/HomeSpots.lua" />
@@ -244,6 +260,16 @@ Changelog 1.5.0.0 :
             <en>No room left for: %s</en>
             <de>Kein Platz mehr für: %s</de>
             <fr>Plus de place pour : %s</fr>
+        </text>
+        <text name="homeSpots_parkedBeside">
+            <en>Spot taken, parked beside it: %s</en>
+            <de>Platz belegt, daneben abgestellt: %s</de>
+            <fr>Place occupée, garé à côté : %s</fr>
+        </text>
+        <text name="homeSpots_overlapQuestion">
+            <en>This overlaps the home spot of %s. Save it anyway?</en>
+            <de>Das überschneidet sich mit dem Stellplatz von %s. Trotzdem speichern?</de>
+            <fr>Cela chevauche la place de %s. L'enregistrer quand même ?</fr>
         </text>
         <text name="homeSpots_none">
             <en>No home spots saved yet</en>

@@ -4,7 +4,7 @@ local machine = {}
 
 -- Loaded in the order modDesc.xml lists them
 machine.SCRIPTS = {
-    "HomeSpotArea", "HomeSpotStore", "HomeSpotFee", "HomeSpotShed", "HomeSpotHotspot", "HomeSpotSettings",
+    "HomeSpotArea", "HomeSpotStore", "HomeSpotFee", "HomeSpotShed", "HomeSpotNearby", "HomeSpotHotspot", "HomeSpotSettings",
     "HomeSpots", "HomeSpotEvents", "HomeSpotMapMenu", "HomeSpotOverview",
 }
 

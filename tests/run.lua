@@ -39,6 +39,8 @@ local tractor = game.newVehicle("t1", "Fendt", 10, 0)
 local plough = game.newVehicle("p1", "Plough", 10, -6)
 local trailer = game.newVehicle("x1", "Trailer", 30, 0)
 local car = game.newVehicle("c1", "Pickup", 100, 100)
+plough.spec_motorized = nil
+trailer.spec_motorized = nil
 tractor.implements = {{object = plough}}
 plough.attacher = tractor
 game.currentVehicle = tractor
@@ -50,6 +52,10 @@ end
 
 local function getX(vehicle)
     return (game.getPosition(vehicle))
+end
+
+local function getZ(vehicle)
+    return select(2, game.getPosition(vehicle))
 end
 
 g_currentMission.missionInfo = {savegameDirectory = "/savegame1"}
@@ -141,13 +147,35 @@ test("send all home moves everything back", function()
     assertEquals(game.lastNotification(), "sent 3")
 end)
 
-test("a vehicle whose spot is taken stays where it is", function()
+test("a vehicle whose spot is taken parks in the nearest free space beside it", function()
+    game.place(trailer, 520, 0)
+    game.place(car, 31, 1)
+    sendAllHome()
+    assertEquals(getX(trailer), 27.5, "trailer beside the taken spot, clear of the car")
+    assertEquals(select(2, game.getPosition(trailer)), 0, "and level with the spot")
+    assertEquals(game.lastNotification(), "sent 1. home 2. beside: Trailer")
+    assert(HomeSpots.store:has(trailer), "the home spot itself is kept")
+    assertEquals(HomeSpots.store:get(trailer)[1][1][1], 30, "home spot unchanged")
+end)
+
+test("a vehicle parked beside its spot goes home once the spot is free", function()
+    game.place(car, 200, 200)
+    sendAllHome()
+    assertEquals(getX(trailer), 30, "trailer")
+end)
+
+test("with no free space within reach a vehicle stays where it is", function()
+    local maxDistance = HomeSpotNearby.MAX_DISTANCE
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = 1, nil
+
     game.place(trailer, 520, 0)
     game.place(car, 31, 1)
     sendAllHome()
     assertEquals(getX(trailer), 520, "trailer")
     assertEquals(game.lastNotification(), "home 2. blocked: Trailer")
     assertEquals(game.notifications[#game.notifications][1], FSBaseMission.INGAME_NOTIFICATION_INFO, "notification type")
+
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = maxDistance, nil
 end)
 
 test("a vehicle parked right beside a spot does not block it", function()
@@ -156,13 +184,34 @@ test("a vehicle parked right beside a spot does not block it", function()
     assertEquals(getX(trailer), 30, "trailer")
 end)
 
-test("a blocked vehicle can in turn block another spot", function()
+test("a vehicle standing on another's spot moves aside and frees it", function()
+    game.place(car, 30, 0)
+    game.place(trailer, 10, 0)
+    game.place(tractor, 700, 0)
+    sendAllHome()
+    assertEquals(getX(tractor), 10, "tractor gets its spot")
+    assertEquals(getX(trailer), 26.5, "trailer beside the car, clear of it")
+    game.place(car, 200, 200)
+    sendAllHome()
+    assertEquals(getX(trailer), 30, "trailer goes home next time")
+end)
+
+test("with no free space beside, a blocked vehicle can in turn block another spot", function()
+    local maxDistance = HomeSpotNearby.MAX_DISTANCE
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = 1, nil
+
     game.place(car, 30, 0)
     game.place(trailer, 10, 0)
     game.place(tractor, 700, 0)
     sendAllHome()
     assertEquals(getX(tractor), 700, "tractor")
     assertEquals(getX(trailer), 10, "trailer")
+
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = maxDistance, nil
+    game.place(car, 200, 200)
+    game.place(trailer, 30, 0)
+    sendAllHome()
+    assertEquals(getX(tractor), 10, "tractor")
 end)
 
 test("rotated vehicles block by their real outline", function()
@@ -170,7 +219,7 @@ test("rotated vehicles block by their real outline", function()
     game.place(trailer, 900, 0)
     game.place(tractor, 700, 0)
     sendAllHome()
-    assertEquals(getX(trailer), 900, "trailer blocked by turned car")
+    assertEquals(getX(trailer), 28.5, "trailer moves beside the turned car")
 
     game.place(car, 33.1, 0, 0)
     game.place(trailer, 900, 0)
@@ -853,12 +902,16 @@ local function getSpot(vehicle)
     return string.format("%.1f %.1f %.1f", position[1], position[2], position[3])
 end
 
+local function setSpotAt(vehicle, x, z)
+    HomeSpots.store:setByKey(HomeSpots.store:getKey(vehicle), {{{x, 0, z}, {0, 0, 0}}})
+end
+
 local spotsBeforeSheds = {}
 for key, components in pairs(HomeSpots.store:getAll()) do
     spotsBeforeSheds[key] = components
 end
 
-local shed = game.newShed("Machine shed", 1, 200, 0, 220, 10, 5)
+local shed = game.newShed("Machine shed", 1, 200, 0, 220, 16, 5)
 local silo = game.newShed("Silo", 1, 240, 0, 260, 10, 5, "SILOS")
 
 test("park in a shed shows in the help panel for what the player looks at", function()
@@ -874,7 +927,7 @@ test("park in a shed shows in the help panel for what the player looks at", func
     assertEquals(getShownEvent("HOMESPOTS_FIND_SHED").active, false, "hidden without a target")
 end)
 
-test("park in a shed: the combination stands side by side under the roof, facing out of the open side", function()
+test("park in a shed: the tractor stands in front and its tool behind it, under the roof, facing out of the open side", function()
     tractor.implements = {{object = plough}}
     plough.attacher = tractor
     tractor.isControlled = true
@@ -883,18 +936,105 @@ test("park in a shed: the combination stands side by side under the roof, facing
     game.place(plough, 150, -6, 0)
 
     parkInShed()
-    assertEquals(getSpot(tractor), "201.8 0.1 5.0", "tractor spot at the start of the row, just off the floor")
-    assertEquals(getSpot(plough), "205.3 0.1 5.0", "plough right beside it")
-    assertEquals(string.format("%.1f %.2f", getX(tractor), math.abs(game.getYaw(tractor))), "201.8 3.14", "moved there, facing out")
-    assertEquals(string.format("%.1f", getX(plough)), "205.3", "plough moved")
+    assertEquals(getSpot(tractor), "218.2 0.1 2.8", "tractor at the open front, at the left end of the line, just off the floor")
+    assertEquals(getSpot(plough), "218.2 0.1 8.1", "plough right behind the tractor")
+    assertEquals(string.format("%.1f %.2f", getX(tractor), math.abs(game.getYaw(tractor))), "218.2 3.14", "moved there, facing out")
+    assertEquals(string.format("%.1f", getZ(plough)), "8.1", "plough moved")
     assertEquals(game.notifications[#game.notifications - 1][2], "in shed Fendt, Plough", "spots saved")
     assertEquals(game.lastNotification(), "sent: Fendt, Plough", "and sent there")
     assertEquals(HomeSpots.hotspots["t1"].x, HomeSpots.store:get(tractor)[1][1][1], "map marker follows")
     tractor.isControlled = false
 end)
 
+test("park in a shed: machines that drive themselves fill the front row, tools the row behind, as many side by side as fit", function()
+    local spotsBefore = {}
+    for key, components in pairs(HomeSpots.store:getAll()) do
+        spotsBefore[key] = components
+    end
+    tractor.implements = {{object = plough}, {object = trailer}, {object = car}}
+    plough.attacher, trailer.attacher, car.attacher = tractor, tractor, tractor
+    tractor.isControlled = true
+    game.currentVehicle = tractor
+    game.place(tractor, 150, 0, 0)
+    game.place(plough, 150, -6, 0)
+    game.place(trailer, 150, -12, 0)
+    game.place(car, 150, -18, 0)
+
+    parkInShed()
+    local front, back = {}, {}
+    for _, vehicle in ipairs({tractor, car}) do
+        assertEquals(string.format("%.1f", getZ(vehicle)), "2.8", vehicle.name .. " at the open front")
+        table.insert(front, string.format("%.1f", getX(vehicle)))
+    end
+    for _, vehicle in ipairs({plough, trailer}) do
+        assertEquals(string.format("%.1f", getZ(vehicle)), "8.1", vehicle.name .. " right behind the front row")
+        table.insert(back, string.format("%.1f", getX(vehicle)))
+    end
+    table.sort(front)
+    table.sort(back)
+    assertEquals(table.concat(front, " "), "214.9 218.2", "two machines side by side in the front row")
+    assertEquals(table.concat(back, " "), "214.9 218.2", "two tools, one behind each")
+    assertEquals(string.format("%.2f", math.abs(game.getYaw(plough))), "3.14", "tools face out too")
+
+    tractor.implements = {{object = plough}}
+    trailer.attacher, car.attacher = nil, nil
+    game.place(tractor, 150, 0, 0)
+    game.place(plough, 150, -6, 0)
+    game.place(trailer, 30, 0, 0)
+    game.place(car, 100, 100, 0)
+    HomeSpots.store:clearSpots()
+    for key, components in pairs(spotsBefore) do
+        HomeSpots.store:setByKey(key, components)
+    end
+    setSpotAt(plough, 201.8, 8.1)
+    tractor.isControlled = false
+end)
+
+test("park in a shed: nothing is parked where the roof does not reach", function()
+    local carport = game.newShed("Carport", 1, 400, 0, 420, 16, 5)
+    game.removeSolid(carport.solids[4])
+    local roof = game.addSolid("short roof", CollisionFlag.BUILDING, 399.7, 5, 0, 420.3, 5.3, 9)
+    shed.farmId = 2
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+
+    parkInShed()
+    local z = getZ(trailer)
+    assert(z > 0 and z + 2.5 <= 9, "the whole trailer is under the roof, it stands at " .. z)
+
+    shed.farmId = 1
+    game.removeSolid(roof)
+    game.removeShed(carport)
+end)
+
+test("park in a shed: a row of posts inside the edge of the floor keeps vehicles inside them, where the roof is", function()
+    local carport = game.newShed("Posted carport", 1, 500, 0, 520, 16, 5)
+    game.removeSolid(carport.solids[4])
+    local posts = {}
+    for _, x in ipairs({502, 508, 514, 519}) do
+        table.insert(posts, game.addSolid("post", CollisionFlag.BUILDING, x - 0.2, 0, 1.3, x + 0.2, 5, 1.7))
+    end
+    shed.farmId = 2
+    game.currentVehicle = nil
+    game.collisionHitNode = car.rootNode
+    game.place(car, 150, 20, 0)
+
+    parkInShed()
+    local z = getZ(car)
+    assert(z >= 4.09, "the nose stays behind the posts at 1.3 m, the car stands at " .. z)
+    assertEquals(string.format("%.2f", math.abs(game.getYaw(car))), "3.14", "facing out between the posts")
+
+    shed.farmId = 1
+    for _, post in ipairs(posts) do
+        game.removeSolid(post)
+    end
+    game.removeShed(carport)
+    HomeSpots.store:remove(car)
+end)
+
 test("park in a shed: in a shelter with only a back wall, a post in front does not turn vehicles sideways", function()
-    local shelter = game.newShed("Shelter", 1, 300, 0, 320, 10, 5)
+    local shelter = game.newShed("Shelter", 1, 300, 0, 320, 16, 5)
     game.removeSolid(shelter.solids[2])
     game.removeSolid(shelter.solids[3])
     local post = game.addSolid("post", CollisionFlag.BUILDING, 309.8, 0, -0.2, 310.2, 5, 0.2)
@@ -905,7 +1045,7 @@ test("park in a shed: in a shelter with only a back wall, a post in front does n
     game.place(car, 290, 20, 0)
 
     parkInShed()
-    assertEquals(getSpot(car), "301.8 0.1 5.0", "at the start of the row")
+    assertEquals(getSpot(car), "318.2 0.1 2.8", "at the front, at the left end of the line")
     assertEquals(string.format("%.2f", math.abs(game.getYaw(car))), "3.14", "facing out of the front, not along the shelter")
 
     HomeSpots.store:setByKey("c1", spot)
@@ -915,15 +1055,159 @@ test("park in a shed: in a shelter with only a back wall, a post in front does n
 end)
 
 test("park in a shed: a pallet in the way is left room", function()
-    local pallet = game.addSolid("pallet", CollisionFlag.DYNAMIC_OBJECT, 209, 0, 4, 210, 1.5, 6)
+    HomeSpots.store:clearSpots()
+    local pallet = game.addSolid("pallet", CollisionFlag.DYNAMIC_OBJECT, 217.7, 0, 9, 219.5, 1.5, 11)
     game.currentVehicle = nil
     game.collisionHitNode = trailer.rootNode
     game.place(trailer, 150, 20, 0)
 
     parkInShed()
-    assertEquals(getSpot(trailer), "211.8 0.1 5.0", "next to the pallet, not on it")
-    assertEquals(string.format("%.1f", getX(trailer)), "211.8", "moved")
+    assertEquals(getSpot(trailer), "215.9 0.1 9.8", "next to the pallet, not on it, a tractor's length from the front")
+    assertEquals(string.format("%.1f", getX(trailer)), "215.9", "moved")
     game.removeSolid(pallet)
+end)
+
+test("park in a shed: a tool parked alone goes behind a tractor that already has its spot in the shed", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(tractor, 210, 2.8)
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+
+    parkInShed()
+    assertEquals(getSpot(trailer), "210.0 0.1 8.1", "right behind the tractor's spot")
+end)
+
+test("park in a shed: a tool goes behind the first machine in line with room behind it, then behind the next", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(tractor, 218.2, 2.8)
+    setSpotAt(car, 214.9, 2.8)
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+
+    parkInShed()
+    assertEquals(getSpot(trailer), "218.2 0.1 8.1", "behind the first one in line, from the left")
+
+    local pallet = game.addSolid("pallet", CollisionFlag.DYNAMIC_OBJECT, 217.2, 0, 6, 219.7, 1.5, 10)
+    game.place(trailer, 150, 20, 0)
+    parkInShed()
+    assertEquals(getSpot(trailer), "214.9 0.1 8.1", "the space behind the first one is taken, so behind the next one")
+
+    game.removeSolid(pallet)
+    HomeSpots.store:clearSpots()
+    setSpotAt(plough, 210, 6)
+    game.place(trailer, 150, 20, 0)
+    parkInShed()
+    assertEquals(getSpot(trailer), "210.0 0.1 11.3", "a tool parks behind another tool that has its spot there")
+end)
+
+test("park in a shed: a tractor takes the front line in front of a tool that stands snug behind where it would be", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(plough, 218.2, 8.06)
+    tractor.implements = {}
+    game.currentVehicle = nil
+    game.collisionHitNode = tractor.rootNode
+    game.place(tractor, 150, 0, 0)
+
+    parkInShed()
+    assertEquals(getSpot(tractor), "218.2 0.1 2.8", "in the front line, in front of the tool, not past it")
+
+    tractor.implements = {{object = plough}}
+    game.place(plough, 150, -6, 0)
+    HomeSpots.store:clearSpots()
+end)
+
+test("park in a shed: a tool of the same kind as one in the shed goes behind it, before the machines that come first in line", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(tractor, 218.2, 2.8)
+    setSpotAt(car, 213.5, 2.8)
+    setSpotAt(plough, 213.5, 5)
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+
+    parkInShed()
+    assertEquals(getSpot(trailer), "218.2 0.1 8.1", "another kind of tool goes behind the first one in line")
+
+    plough.configFileName, trailer.configFileName = "tool.xml", "tool.xml"
+    game.place(trailer, 150, 20, 0)
+    parkInShed()
+    assertEquals(getSpot(trailer), "213.5 0.1 10.3", "the same kind goes behind the one it is like")
+    plough.configFileName, trailer.configFileName = nil, nil
+    game.place(plough, 150, -6, 0)
+end)
+
+test("park in a shed: two machines fit side by side in a lane between a column and the wall when it is only just wide enough", function()
+    local lane = game.newShed("Lane shed", 1, 600, 0, 620, 16, 5)
+    local column = game.addSolid("column", CollisionFlag.BUILDING, 612.85, 0, 0, 613.05, 5, 16)
+    shed.farmId = 2
+    local spotsBefore = {}
+    for key, components in pairs(HomeSpots.store:getAll()) do
+        spotsBefore[key] = components
+    end
+    tractor.implements = {{object = car}}
+    car.attacher = tractor
+    tractor.isControlled = true
+    game.currentVehicle = tractor
+    game.place(tractor, 150, 0, 0)
+    game.place(car, 150, -6, 0)
+
+    parkInShed()
+    local xs = {string.format("%.1f", getX(tractor)), string.format("%.1f", getX(car))}
+    table.sort(xs)
+    assertEquals(table.concat(xs, " "), "614.9 618.2", "both stand in the 6.95 m lane, snug against each other")
+    assertEquals(string.format("%.1f %.1f", getZ(tractor), getZ(car)), "2.8 2.8", "both in the front line, free to drive out")
+
+    tractor.implements = {{object = plough}}
+    car.attacher = nil
+    game.place(tractor, 150, 0, 0)
+    game.place(car, 100, 100, 0)
+    HomeSpots.store:clearSpots()
+    for key, components in pairs(spotsBefore) do
+        HomeSpots.store:setByKey(key, components)
+    end
+    tractor.isControlled = false
+    game.currentVehicle = nil
+    shed.farmId = 1
+    game.removeSolid(column)
+    game.removeShed(lane)
+end)
+
+test("park in a shed: a tractor and two tools fill a line of the shed front to back, one behind the other", function()
+    local deep = game.newShed("Deep shed", 1, 400, 0, 420, 30, 5)
+    shed.farmId = 2
+    local spotsBefore = {}
+    for key, components in pairs(HomeSpots.store:getAll()) do
+        spotsBefore[key] = components
+    end
+    tractor.implements = {{object = plough}, {object = trailer}}
+    plough.attacher, trailer.attacher = tractor, tractor
+    tractor.isControlled = true
+    game.currentVehicle = tractor
+    game.place(tractor, 150, 0, 0)
+    game.place(plough, 150, -6, 0)
+    game.place(trailer, 150, -12, 0)
+
+    parkInShed()
+    assertEquals(getSpot(tractor), "418.2 0.1 2.8", "tractor at the front, at the left end")
+    assertEquals(getSpot(plough), "418.2 0.1 8.1", "first tool behind the tractor")
+    assertEquals(getSpot(trailer), "418.2 0.1 13.4", "second tool behind the first")
+
+    tractor.implements = {{object = plough}}
+    trailer.attacher = nil
+    game.place(tractor, 150, 0, 0)
+    game.place(plough, 150, -6, 0)
+    game.place(trailer, 30, 0, 0)
+    HomeSpots.store:clearSpots()
+    for key, components in pairs(spotsBefore) do
+        HomeSpots.store:setByKey(key, components)
+    end
+    setSpotAt(trailer, 201.8, 8.1)
+    tractor.isControlled = false
+    game.currentVehicle = nil
+    shed.farmId = 1
+    game.removeShed(deep)
 end)
 
 test("park in a shed: without a shed of the farm nothing changes and the player is told", function()
@@ -938,14 +1222,133 @@ test("park in a shed: without a shed of the farm nothing changes and the player 
     shed.farmId = 1
 end)
 
-test("a home spot that runs into a wall is left alone", function()
-    HomeSpots.store:setByKey("x1", {{{210, 0, 10}, {0, 0, 0}}})
+test("a home spot that runs into a wall moves to the nearest free space beside it", function()
+    HomeSpots.store:setByKey("x1", {{{210, 0, 16}, {0, 0, 0}}})
     game.collisionHitNode = trailer.rootNode
+
+    sendTargetHome()
+    local x, z = game.getPosition(trailer)
+    assertEquals(x, 210, "in line with the spot")
+    assertEquals(z, 13, "in front of the back wall, clear of it")
+    assertEquals(game.lastNotification(), "sent: Trailer. beside: Trailer", "player is told")
+end)
+
+test("a home spot in a wall with no free space beside it stays where it is", function()
+    local maxDistance = HomeSpotNearby.MAX_DISTANCE
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = 1, nil
+    game.place(trailer, 150, 20, 0)
 
     sendTargetHome()
     assertEquals(getX(trailer), 150, "stays put")
     assertEquals(game.lastNotification(), "blocked: Trailer", "player is told")
+
+    HomeSpotNearby.MAX_DISTANCE, HomeSpotNearby.offsets = maxDistance, nil
     game.collisionHitNode = nil
+end)
+
+-- Nearest free space beside a taken spot, and the question before a spot that overlaps another
+
+local function sendTrailerHome()
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    sendTargetHome()
+    game.collisionHitNode = nil
+end
+
+test("a space beside a taken spot keeps clear of another vehicle's home spot", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(trailer, 30, 0)
+    setSpotAt(car, 27, 0)
+    car.isControlled = true
+    game.place(car, 31, 1)
+    game.place(trailer, 520, 0)
+
+    sendTrailerHome()
+    local x, z = game.getPosition(trailer)
+    assertEquals(x, 34.5, "on the other side, not on the car's own spot beside it")
+    assertEquals(z, 0, "level with the spot")
+    car.isControlled = false
+end)
+
+test("a space beside a taken spot keeps clear of a pallet", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(trailer, 30, 0)
+    local pallet = game.addSolid("pallet", CollisionFlag.DYNAMIC_OBJECT, 24, 0, -1, 27, 1.5, 1)
+    game.place(trailer, 520, 0)
+
+    sendTrailerHome()
+    assertEquals(getX(trailer), 34.5, "on the other side, not on the pallet")
+    game.removeSolid(pallet)
+end)
+
+test("a vehicle sent beside its spot pays for the way to where it stands", function()
+    HomeSpots.changeSettings({feeLevel = HomeSpotStore.FEE_NORMAL})
+    local balance = game.balances[1]
+    game.place(trailer, 2030, 0)
+
+    sendTrailerHome()
+    assertEquals(game.balances[1], balance - 100, "2,002.5 m at 50 per km")
+
+    game.balances[1] = balance
+    HomeSpots.changeSettings({feeLevel = HomeSpotStore.FEE_OFF})
+end)
+
+test("a spot that overlaps another vehicle's home spot asks first", function()
+    HomeSpots.store:clearSpots()
+    setSpotAt(trailer, 30, 0)
+    game.place(trailer, 30, 0)
+    game.place(car, 31, 1)
+    game.currentVehicle = nil
+    game.collisionHitNode = car.rootNode
+
+    HomeSpots:onSetHomeInput()
+    assertEquals(game.openDialog.text, "overlaps Trailer", "names the vehicle whose spot it is")
+    game.openDialog.answer(false)
+    assert(not HomeSpots.store:has(car), "nothing saved on No")
+
+    HomeSpots:onSetHomeInput()
+    game.openDialog.answer(true)
+    assert(HomeSpots.store:has(car), "saved on Yes")
+    assertEquals(game.lastNotification(), "saved Pickup")
+    HomeSpots.store:remove(car)
+    game.collisionHitNode = nil
+end)
+
+test("a spot that overlaps nothing, or only its own old spot, is saved without asking", function()
+    game.place(car, 200, 200)
+    game.currentVehicle = nil
+    game.collisionHitNode = car.rootNode
+    HomeSpots:onSetHomeInput()
+    assertEquals(game.openDialog, nil, "clear ground")
+    assert(HomeSpots.store:has(car), "saved")
+    HomeSpots.store:remove(car)
+
+    game.collisionHitNode = trailer.rootNode
+    HomeSpots:onSetHomeInput()
+    assertEquals(game.openDialog, nil, "updating a vehicle's own spot")
+
+    game.place(car, 33.1, 0)
+    game.collisionHitNode = car.rootNode
+    HomeSpots:onSetHomeInput()
+    assertEquals(game.openDialog, nil, "parked right beside another spot")
+    HomeSpots.store:remove(car)
+    game.collisionHitNode = nil
+end)
+
+test("a combination is saved together without asking about its own spots", function()
+    HomeSpots.store:clearSpots()
+    tractor.implements = {{object = plough}}
+    plough.attacher = tractor
+    game.place(tractor, 10, 0)
+    game.place(plough, 10, -6)
+    setSpotAt(tractor, 10, 0)
+    setSpotAt(plough, 10, -6)
+    game.currentVehicle = tractor
+
+    HomeSpots:onSetHomeInput()
+    assertEquals(game.openDialog, nil, "no question")
+    assertEquals(game.lastNotification(), "saved Fendt, Plough")
+    game.currentVehicle = nil
 end)
 
 game.removeShed(shed)

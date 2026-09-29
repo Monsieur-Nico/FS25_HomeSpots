@@ -92,18 +92,27 @@ function HomeSpotArea.getOverlaps(a, b)
 end
 
 
+---Returns the first footprint in the list that the footprint overlaps
+-- @param table area footprint
+-- @param table others list of footprints
+-- @return table other the footprint it overlaps, or nil when it overlaps none
+function HomeSpotArea.getFirstOverlap(area, others)
+    for _, other in ipairs(others) do
+        if HomeSpotArea.getOverlaps(area, other) then
+            return other
+        end
+    end
+
+    return nil
+end
+
+
 ---Returns true if the footprint overlaps any footprint in the list
 -- @param table area footprint
 -- @param table others list of footprints
 -- @return boolean overlaps
 function HomeSpotArea.getOverlapsAny(area, others)
-    for _, other in ipairs(others) do
-        if HomeSpotArea.getOverlaps(area, other) then
-            return true
-        end
-    end
-
-    return false
+    return HomeSpotArea.getFirstOverlap(area, others) ~= nil
 end
 
 

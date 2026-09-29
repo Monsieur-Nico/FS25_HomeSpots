@@ -8,6 +8,7 @@ globals = {
     "HomeSpots",
     "HomeSpotArea",
     "HomeSpotFee",
+    "HomeSpotNearby",
     "HomeSpotNetwork",
     "HomeSpotOverview",
     "HomeSpotOverviewFrame",

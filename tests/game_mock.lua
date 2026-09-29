@@ -389,6 +389,8 @@ local texts = {
     homeSpots_shedSaved = "in shed %s",
     homeSpots_noShedRoom = "no shed room",
     homeSpots_noShedRoomFor = "no room for %s",
+    homeSpots_parkedBeside = "beside: %s",
+    homeSpots_overlapQuestion = "overlaps %s",
 }
 
 g_i18n = {getText = function(_, name) return texts[name] or name end}
@@ -655,6 +657,7 @@ function game.newVehicle(uniqueId, name, x, z, yaw)
         rootNode = node,
         farmId = 1,
         implements = {},
+        spec_motorized = {},
         size = {width = 3, length = 5, widthOffset = 0, lengthOffset = 0},
     }
 

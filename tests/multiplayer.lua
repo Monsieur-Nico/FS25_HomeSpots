@@ -243,7 +243,7 @@ return function(test, assertEquals, network)
         playerMod:onFindShedInput()
         step()
 
-        assertEquals(string.format("%.1f", getX(combine)), "201.8", "host moved the combine into the shed")
+        assertEquals(string.format("%.1f", getX(combine)), "218.2", "host moved the combine into the shed")
         assert(playerMod.store:has(playerCopies[combine]), "player sees the spot")
         assert(admin.HomeSpots.store:has(adminCopies[combine]), "other players see the spot")
         assertEquals(playerGame.lastNotification(), "sent: Claas", "player is told")
@@ -253,6 +253,38 @@ return function(test, assertEquals, network)
         playerGame.currentVehicle = nil
         hostGame.removeShed(shed)
         hostGame.place(combine, 60, 0)
+    end)
+
+    test("multiplayer: a player's vehicle whose spot is taken parks beside it and the player is told", function()
+        hostMod.store:set(combine)
+        hostGame.place(trailer, 60, 0)
+        hostGame.place(combine, 300, 0)
+        playerGame.place(playerCopies[combine], 300, 0)
+
+        playerMod:onSendAllHomeInput()
+        step()
+        assertEquals(math.abs(getX(combine) - 60), 3.5, "beside the trailer that stands on the spot")
+        assertEquals(playerGame.lastNotification(), "sent 1. beside: Claas", "player is told")
+
+        hostMod.store:remove(combine)
+        hostGame.place(trailer, 30, 0)
+        hostGame.place(combine, 60, 0)
+    end)
+
+    test("multiplayer: a player is asked before saving a spot that overlaps another", function()
+        playerGame.currentVehicle = playerCopies[combine]
+        playerGame.place(playerCopies[combine], 31, 1)
+
+        playerMod:onSetHomeInput()
+        assertEquals(playerGame.openDialog.text, "overlaps Trailer", "question on the player's machine")
+        playerGame.openDialog.answer(true)
+        step()
+        assert(hostMod.store:has(combine), "saved on the host once confirmed")
+
+        playerMod:onClearHomeInput()
+        step()
+        playerGame.place(playerCopies[combine], 60, 0)
+        playerGame.currentVehicle = nil
     end)
 
     test("multiplayer: only the host writes homeSpots.xml", function()

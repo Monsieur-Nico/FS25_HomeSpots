@@ -337,6 +337,7 @@ function HomeSpotReportEvent:writeStream(streamId, connection)
     HomeSpotNetwork.writeVehicles(streamId, report.vehicles)
     HomeSpotNetwork.writeVehicles(streamId, report.atHome)
     HomeSpotNetwork.writeVehicles(streamId, report.blocked)
+    HomeSpotNetwork.writeVehicles(streamId, report.nearby)
     HomeSpotNetwork.writeFees(streamId, report.fees)
 end
 
@@ -352,6 +353,7 @@ function HomeSpotReportEvent:readStream(streamId, connection)
     report.vehicles = HomeSpotNetwork.readVehicles(streamId)
     report.atHome = HomeSpotNetwork.readVehicles(streamId)
     report.blocked = HomeSpotNetwork.readVehicles(streamId)
+    report.nearby = HomeSpotNetwork.readVehicles(streamId)
     report.fees = HomeSpotNetwork.readFees(streamId)
     self.report = report
 

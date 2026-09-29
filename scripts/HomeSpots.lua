@@ -267,9 +267,55 @@ function HomeSpots:onLookRayHit(hitObjectId, x, y, z, distance, normalX, normalY
 end
 
 
----Action: save the current position of the targeted vehicles as their home spots
+---Action: save the current position of the targeted vehicles as their home spots,
+-- after asking when it overlaps the home spot of another vehicle
 function HomeSpots:onSetHomeInput()
-    HomeSpots.request(HomeSpots.ACTION_SET, HomeSpots.getTargetVehicles())
+    local vehicles = HomeSpots.getTargetVehicles()
+    local overlapped = HomeSpots.getVehiclesWithOverlappingSpot(vehicles)
+
+    if #overlapped == 0 then
+        HomeSpots.request(HomeSpots.ACTION_SET, vehicles)
+        return
+    end
+
+    YesNoDialog.show(HomeSpots.onSetOverlapAnswered, HomeSpots,
+        HomeSpots.getText("homeSpots_overlapQuestion", HomeSpots.getVehicleNames(overlapped, HomeSpots.MAX_NAMES_LISTED)),
+        nil, nil, nil, nil, nil, nil, vehicles)
+end
+
+
+---The player answered the question about a spot that overlaps another
+-- @param boolean isYes true to save the spot anyway
+-- @param table vehicles vehicles to save the spot of
+function HomeSpots:onSetOverlapAnswered(isYes, vehicles)
+    if isYes then
+        HomeSpots.request(HomeSpots.ACTION_SET, vehicles)
+    end
+end
+
+
+---Returns the vehicles, sorted by name, whose saved home spot the given vehicles stand on.
+-- The given vehicles' own spots are left out: saving replaces them.
+-- @param table vehicles vehicles about to get a home spot where they stand
+-- @return table overlapped vehicles whose home spot would overlap
+function HomeSpots.getVehiclesWithOverlappingSpot(vehicles)
+    local isTarget = {}
+    local areas = {}
+    for _, vehicle in ipairs(vehicles) do
+        isTarget[vehicle] = true
+        table.insert(areas, HomeSpotArea.newFromNode(vehicle.size, vehicle.rootNode))
+    end
+
+    local overlapped = {}
+    for vehicle, spotArea in pairs(HomeSpotNearby.getSpotAreas()) do
+        if not isTarget[vehicle] and HomeSpotArea.getOverlapsAny(spotArea, areas) then
+            table.insert(overlapped, vehicle)
+        end
+    end
+
+    table.sort(overlapped, function(a, b) return a:getFullName() < b:getFullName() end)
+
+    return overlapped
 end
 
 
@@ -609,7 +655,8 @@ end
 
 ---Server: send vehicles to their home spots.
 -- Vehicles are unhooked this frame and moved on the next update, once the detach has settled.
--- Tools without a home spot are unhooked and left where they are. A vehicle whose spot is taken, or runs into a wall, stays put.
+-- Tools without a home spot are unhooked and left where they are. A vehicle whose spot is taken, or runs into a wall,
+-- goes to the nearest free space beside it, or stays put when there is none.
 -- With the realism fee on, a player's own request goes ahead only if their farm can pay for it.
 -- @param table vehicles vehicles to send home, those without a home spot are skipped
 -- @param table options isAutomatic (daily send-home time), isTargeted (the player picked these vehicles, the report names them),
@@ -673,6 +720,17 @@ function HomeSpots.sendHome(vehicles, options)
         table.insert(blocked, move)
     end
 
+    local placed
+    placed, blocked = HomeSpotNearby.placeBlocked(blocked, accepted, staticAreas)
+
+    local nearby = {}
+    for _, move in ipairs(placed) do
+        table.insert(accepted, move)
+        if move.isNearby then
+            table.insert(nearby, move)
+        end
+    end
+
     HomeSpotFee.priceMoves(accepted, HomeSpots.store.feeLevel)
     if not options.isAutomatic and options.farmId ~= nil then
         local fee = HomeSpotFee.getFarmFees(accepted)[options.farmId] or 0
@@ -696,6 +754,7 @@ function HomeSpots.sendHome(vehicles, options)
     report.numBusy = numBusy
     report.atHome = atHome
     report.blocked = HomeSpots.getMovedVehicles(blocked)
+    report.nearby = HomeSpots.getMovedVehicles(nearby)
     report.connection = options.connection
     HomeSpots.pendingReport = report
 end
@@ -804,10 +863,10 @@ end
 
 ---Create an empty report
 -- @param integer kind HomeSpots.REPORT_*
--- @return table report kind, vehicles (saved, removed or moved), atHome, blocked, numBusy, isAutomatic, isTargeted,
---   fees (farm id to the realism fee paid, or asked for when the farm could not pay)
+-- @return table report kind, vehicles (saved, removed or moved), atHome, blocked, nearby (moved to a space beside their taken spot),
+--   numBusy, isAutomatic, isTargeted, fees (farm id to the realism fee paid, or asked for when the farm could not pay)
 function HomeSpots.newReport(kind)
-    return {kind = kind, vehicles = {}, atHome = {}, blocked = {}, numBusy = 0, isAutomatic = false, isTargeted = false, fees = {}}
+    return {kind = kind, vehicles = {}, atHome = {}, blocked = {}, nearby = {}, numBusy = 0, isAutomatic = false, isTargeted = false, fees = {}}
 end
 
 
@@ -880,6 +939,9 @@ function HomeSpots.showReport(report)
     end
     if report.numBusy > 0 then
         table.insert(parts, HomeSpots.getText("homeSpots_inUse", report.numBusy))
+    end
+    if #report.nearby > 0 then
+        table.insert(parts, HomeSpots.getText("homeSpots_parkedBeside", names(report.nearby)))
     end
     if #report.blocked > 0 then
         table.insert(parts, HomeSpots.getText("homeSpots_blocked", names(report.blocked)))
