@@ -6,6 +6,24 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.7.0.0] - 2026-09-29
+
+### Added
+- A vehicle whose home spot is taken, or runs into a building, a wall or a tree, now parks in the nearest free space
+  beside it, with the same heading, instead of staying where it is. It keeps clear of other vehicles, their home
+  spots, walls, trees and pallets, and stays where it is only when there is no room within 20 m. The report names
+  the vehicles that were parked beside their spot.
+- Saving a home spot that overlaps another vehicle's home spot now asks first.
+
+### Changed
+- The realism fee for such a vehicle is charged for the way to the space it is parked in.
+- Park in a shed (Alt + N) now uses the whole shed: every vehicle and tool gets a place of its own, and the shed is filled
+  one line at a time, from left to right as seen from outside the open front, front to back. Tractors and other
+  machines that drive themselves take the front lines. A tool goes directly behind a vehicle or tool of yours that
+  stands or has its home spot in the shed: one of its own kind if there is room behind it, otherwise the first one in
+  line with room behind it, and otherwise about a tractor's length from the front. Machines stand snug against a wall, a column or their neighbour (0.3 m apart), so a lane between walls or columns holds as many side by side as fit, each with a free way out. Where a shed has a line of posts inside the edge of its floor, vehicles stay inside the posts,
+  under the roof, and every place is checked under the roof over its whole footprint, not only along its length.
+
 ## [1.6.0.0] - 2026-09-28
 
 ### Added
@@ -124,7 +142,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.6.0.0...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.7.0.0...HEAD
+[1.7.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.6.0.0...v1.7.0.0
 [1.6.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.5.0.0...v1.6.0.0
 [1.5.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.4.0.0...v1.5.0.0
 [1.4.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.3.0.0...v1.4.0.0

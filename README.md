@@ -9,6 +9,14 @@ Park a tractor, a trailer or a seeder where it belongs and save that spot. When 
 **Alt + H** and everything goes back to where it lives: tools are unhooked and every machine is set down on its own
 spot. You can also let the farm tidy itself up at a set time every day.
 
+## Screenshots
+
+![Vehicles and tools parked in a shed](docs/screenshots/05-shed-parking-solar-carport.jpg)
+![Tractors and tools parked in a shed](docs/screenshots/01-shed-parked.jpg)
+![The Home Spots page in the menu](docs/screenshots/02-home-spots-page-marked.jpg)
+![Saving a home spot from the tractor](docs/screenshots/03-tractor-keys-marked.jpg)
+![Home spot markers on the map](docs/screenshots/04-map-markers-marked.jpg)
+
 ## Features
 
 - **One key tidy-up.** Every vehicle and tool of your farm with a saved spot is sent home at once.
@@ -16,10 +24,13 @@ spot. You can also let the farm tidy itself up at a set time every day.
   On foot, look at a single tool or vehicle to save just that one.
 - **Knows what you are looking at.** The help panel names the machine a key will act on, for example
   "Set home spot: Horsch Finer 6 SL".
-- **Never stacks vehicles.** If something else is parked on a spot, or a building or tree now stands in it, that
-  vehicle stays where it is and you are told which one.
+- **Never stacks vehicles.** If something else is parked on a spot, or a building or tree now stands in it, the
+  vehicle parks in the nearest free space beside it, with the same heading, and you are told which one. With no room
+  within 20 m it stays where it is. The spot itself is kept, so it goes there next time.
+- **Asks before overlapping.** Saving a spot that overlaps another vehicle's spot asks you first.
 - **Park in a shed.** One key finds a free place under the roof of your nearest shed, clear of walls, posts, pallets
-  and other vehicles, saves it as the home spot and sends the vehicle there, facing out of the open side.
+  and other vehicles, saves it as the home spot and sends the vehicle there, facing out of the open side. The
+  shed is filled line by line from left to right, front to back: tractors at the front, tools directly behind them.
 - **Leaves things alone.** Vehicles you or a worker are driving stay put, and anything already on its spot is not moved.
 - **Map markers.** An orange house on the map marks every spot whose vehicle is away, so a tidy farm shows none.
   In the settings you can show every spot instead, green while its vehicle is home, or turn markers off.
