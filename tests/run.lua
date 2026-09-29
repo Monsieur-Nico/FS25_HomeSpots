@@ -35,6 +35,20 @@ local function assertEquals(actual, expected, message)
     end
 end
 
+test("every script is loaded, in the order modDesc.xml lists them", function()
+    local listed = {}
+    for name in io.open("modDesc.xml"):read("*a"):gmatch('<sourceFile filename="scripts/(%w+)%.lua"') do
+        table.insert(listed, name)
+    end
+    assertEquals(table.concat(machine.SCRIPTS, " "), table.concat(listed, " "), "the tests load the scripts the way modDesc.xml lists them")
+
+    local numFiles = 0
+    for _ in io.popen("ls scripts"):lines() do
+        numFiles = numFiles + 1
+    end
+    assertEquals(numFiles, #listed, "no script in scripts/ is left out of modDesc.xml")
+end)
+
 local tractor = game.newVehicle("t1", "Fendt", 10, 0)
 local plough = game.newVehicle("p1", "Plough", 10, -6)
 local trailer = game.newVehicle("x1", "Trailer", 30, 0)
@@ -341,7 +355,7 @@ end
 for _, hasTimeScale in ipairs({false, true}) do
     local caseName = hasTimeScale and "copying the time scale row" or "searching the layout"
 
-    test("settings section has the tidy-up hour, marker and fee options, " .. caseName, function()
+    test("settings section has the tidy-up hour, marker, fee and detailed log options, " .. caseName, function()
         HomeSpotSettings.injectedLayout = nil
 
         local layout = newElement("layout")
@@ -354,7 +368,7 @@ for _, hasTimeScale in ipairs({false, true}) do
 
         local frame = {generalSettingsLayout = layout, multiTimeScale = hasTimeScale and multiOption or nil}
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 7, "header and three rows added")
+        assertEquals(#layout.elements, 8, "header and four rows added")
 
         local option = HomeSpotSettings.OPTIONS[1].element
         assert(option ~= nil and option.kind == MultiTextOptionElement, "copied a multi choice row, not a toggle")
@@ -392,8 +406,17 @@ for _, hasTimeScale in ipairs({false, true}) do
         game.costMultiplier = 1
         fee.onClickCallback(fee.target, HomeSpotStore.FEE_OFF)
 
+        local detailLog = HomeSpotSettings.OPTIONS[4].element
+        assertEquals(layout.elements[8].elements[2].text, "homeSpots_detailLog")
+        assertEquals(table.concat(detailLog.texts, ", "), "homeSpots_off, homeSpots_on")
+        assertEquals(detailLog.state, HomeSpotStore.LOG_OFF, "off by default")
+        detailLog.onClickCallback(detailLog.target, HomeSpotStore.LOG_ON)
+        assertEquals(HomeSpots.store.detailLog, HomeSpotStore.LOG_ON, "on")
+        assertEquals(HomeSpots.store.markerMode, HomeSpotStore.MARKERS_AWAY, "other settings kept")
+        detailLog.onClickCallback(detailLog.target, HomeSpotStore.LOG_OFF)
+
         HomeSpots.onSettingsFrameOpen(frame)
-        assertEquals(#layout.elements, 7, "not added twice")
+        assertEquals(#layout.elements, 8, "not added twice")
     end)
 end
 
@@ -648,6 +671,17 @@ test("realism fee: the price follows the economic difficulty and saves with the 
     HomeSpots.store:reset()
     HomeSpots.store:loadFromDirectory("/savegame1")
     assertEquals(HomeSpots.store.feeLevel, HomeSpotStore.FEE_NORMAL, "fee level saved")
+end)
+
+test("the detailed log setting is saved with the savegame", function()
+    HomeSpots.changeSettings({detailLog = HomeSpotStore.LOG_ON})
+    HomeSpots.onSaveCareer(g_currentMission.missionInfo)
+    HomeSpots.store:reset()
+    assertEquals(HomeSpots.store.detailLog, HomeSpotStore.LOG_OFF, "off after a reset")
+    HomeSpots.store:loadFromDirectory("/savegame1")
+    assertEquals(HomeSpots.store.detailLog, HomeSpotStore.LOG_ON, "on again")
+    HomeSpots.changeSettings({detailLog = HomeSpotStore.LOG_OFF})
+    HomeSpots.onSaveCareer(g_currentMission.missionInfo)
 end)
 
 test("realism fee: without the money nothing moves and the player is told the price", function()
@@ -1065,6 +1099,48 @@ test("park in a shed: a pallet in the way is left room", function()
     assertEquals(getSpot(trailer), "215.9 0.1 9.8", "next to the pallet, not on it, a tractor's length from the front")
     assertEquals(string.format("%.1f", getX(trailer)), "215.9", "moved")
     game.removeSolid(pallet)
+end)
+
+local function getShedLog()
+    local lines, info = {}, Logging.info
+    Logging.info = function(text, ...)
+        table.insert(lines, string.format(text, ...))
+    end
+    parkInShed()
+    Logging.info = info
+
+    return lines
+end
+
+test("park in a shed: one log line per machine, and the details only with the detailed log on", function()
+    HomeSpots.store:clearSpots()
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+
+    local lines = getShedLog()
+    assertEquals(#lines, 1, "one line")
+    assert(lines[1]:find("Trailer got a home spot in 'Machine shed'", 1, true), lines[1])
+
+    HomeSpots.changeSettings({detailLog = HomeSpotStore.LOG_ON})
+    game.place(trailer, 150, 20, 0)
+    lines = getShedLog()
+    HomeSpots.changeSettings({detailLog = HomeSpotStore.LOG_OFF})
+    assert(#lines >= 3, "the room and which way the finder faces too")
+    assert(table.concat(lines, "\n"):find("the finder faces", 1, true), "which way the finder faces")
+end)
+
+test("park in a shed: a machine gives up once it has tried the most places it may", function()
+    HomeSpots.store:clearSpots()
+    game.currentVehicle = nil
+    game.collisionHitNode = trailer.rootNode
+    game.place(trailer, 150, 20, 0)
+    HomeSpotShed.MAX_PLACES_TRIED = 0
+
+    parkInShed()
+    HomeSpotShed.MAX_PLACES_TRIED = 30000
+    assertEquals(game.lastNotification(), "no shed room", "no place found in time")
+    assertEquals(getX(trailer), 150, "not moved")
 end)
 
 test("park in a shed: a tool parked alone goes behind a tractor that already has its spot in the shed", function()

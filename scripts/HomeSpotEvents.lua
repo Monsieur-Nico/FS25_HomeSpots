@@ -211,6 +211,7 @@ function HomeSpotSettingsEvent:writeStream(streamId, connection)
     streamWriteInt8(streamId, self.settings.autoTidyHour)
     streamWriteUInt8(streamId, self.settings.markerMode)
     streamWriteUInt8(streamId, self.settings.feeLevel)
+    streamWriteUInt8(streamId, self.settings.detailLog)
 end
 
 
@@ -222,6 +223,7 @@ function HomeSpotSettingsEvent:readStream(streamId, connection)
     settings.autoTidyHour = streamReadInt8(streamId)
     settings.markerMode = streamReadUInt8(streamId)
     settings.feeLevel = streamReadUInt8(streamId)
+    settings.detailLog = streamReadUInt8(streamId)
     self.settings = settings
 
     self:run(connection)

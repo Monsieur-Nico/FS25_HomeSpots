@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Monsieur-Nico</author>
-    <version>1.7.0.0</version>
+    <version>1.7.1.0</version>
     <title>
         <en>Home Spots</en>
         <de>Stellplätze</de>
@@ -24,6 +24,10 @@ How to use:
 Vehicles driven by you, another player or a worker are left alone. If something else is parked on a vehicle's spot, or a building or tree stands in it, that vehicle parks in the nearest free space beside it, or stays where it is when there is none, and you are told which. When you save a spot that overlaps another vehicle's spot, you are asked first. Tools without a home spot are unhooked and left where they are. All keys can be changed in the Controls menu.
 
 Multiplayer: every player shares the same spots and map markers. Alt + H and the map send home only your own farm's vehicles; the daily send-home time sends every farm's. Only the host or a server admin can change the Home Spots settings.
+
+Changelog 1.7.1.0:
+- New: a "Detailed log" setting. Turn it on before you send in a log about a shed problem; otherwise the shed finder writes one line per machine.
+- Changed: the shed search is up to three times faster in big sheds and gives up after trying a very large number of places.
 
 Changelog 1.7.0.0:
 - New: a vehicle whose home spot is taken, or runs into a wall or a tree, now parks in the nearest free space beside it instead of staying where it is.
@@ -58,6 +62,10 @@ Fahrzeuge, die du, ein anderer Spieler oder ein Helfer gerade fährt, bleiben st
 
 Mehrspieler: Alle Spieler teilen dieselben Stellplätze und Karten-Symbole. Alt + H und die Karte schicken nur die Fahrzeuge deines Hofs nach Hause, die tägliche Uhrzeit die aller Höfe. Nur der Host oder ein Server-Admin kann die Stellplatz-Einstellungen ändern.
 
+Changelog 1.7.1.0:
+- Neu: Einstellung „Ausführliches Protokoll“. Vor dem Einsenden eines Protokolls zu einem Schuppenproblem einschalten; sonst schreibt die Schuppensuche eine Zeile pro Maschine.
+- Geändert: Die Schuppensuche ist in großen Schuppen bis zu dreimal schneller und gibt nach sehr vielen versuchten Plätzen auf.
+
 Changelog 1.7.0.0:
 - Neu: Ein Fahrzeug, dessen Stellplatz belegt ist oder in eine Wand oder einen Baum ragt, wird jetzt auf dem nächsten freien Platz daneben abgestellt, statt stehen zu bleiben.
 - Neu: Ein Stellplatz, der sich mit dem eines anderen Fahrzeugs überschneidet, wird erst nach Rückfrage gespeichert.
@@ -91,6 +99,10 @@ Les véhicules conduits par vous, un autre joueur ou un ouvrier ne bougent pas. 
 
 Multijoueur : tous les joueurs partagent les mêmes places et marqueurs sur la carte. Alt + H et la carte ne renvoient que les véhicules de votre ferme ; l'heure quotidienne renvoie ceux de toutes les fermes. Seul l'hôte ou un admin du serveur peut changer les paramètres de Places de rangement.
 
+Changelog 1.7.1.0 :
+- Nouveau : un réglage « Journal détaillé ». Activez-le avant d'envoyer un journal au sujet d'un problème de hangar ; sinon la recherche écrit une ligne par machine.
+- Modifié : la recherche de hangar est jusqu'à trois fois plus rapide dans les grands hangars et abandonne après un très grand nombre d'essais.
+
 Changelog 1.7.0.0 :
 - Nouveau : un véhicule dont la place est prise, ou touche un mur ou un arbre, se gare désormais dans l'espace libre le plus proche à côté au lieu de rester sur place.
 - Nouveau : enregistrer une place qui chevauche celle d'un autre véhicule demande d'abord confirmation.
@@ -115,10 +127,21 @@ Changelog 1.5.0.0 :
         <sourceFile filename="scripts/HomeSpotStore.lua" />
         <sourceFile filename="scripts/HomeSpotFee.lua" />
         <sourceFile filename="scripts/HomeSpotShed.lua" />
+        <sourceFile filename="scripts/HomeSpotShedRoom.lua" />
+        <sourceFile filename="scripts/HomeSpotShedPlace.lua" />
+        <sourceFile filename="scripts/HomeSpotShedFinder.lua" />
+        <sourceFile filename="scripts/HomeSpotShedLog.lua" />
         <sourceFile filename="scripts/HomeSpotNearby.lua" />
         <sourceFile filename="scripts/HomeSpotHotspot.lua" />
         <sourceFile filename="scripts/HomeSpotSettings.lua" />
         <sourceFile filename="scripts/HomeSpots.lua" />
+        <sourceFile filename="scripts/HomeSpotTargets.lua" />
+        <sourceFile filename="scripts/HomeSpotActions.lua" />
+        <sourceFile filename="scripts/HomeSpotInput.lua" />
+        <sourceFile filename="scripts/HomeSpotSend.lua" />
+        <sourceFile filename="scripts/HomeSpotReport.lua" />
+        <sourceFile filename="scripts/HomeSpotMarkers.lua" />
+        <sourceFile filename="scripts/HomeSpotHooks.lua" />
         <sourceFile filename="scripts/HomeSpotEvents.lua" />
         <sourceFile filename="scripts/HomeSpotMapMenu.lua" />
         <sourceFile filename="scripts/HomeSpotOverview.lua" />
@@ -335,6 +358,21 @@ Changelog 1.5.0.0 :
             <en>Off</en>
             <de>Aus</de>
             <fr>Désactivé</fr>
+        </text>
+        <text name="homeSpots_on">
+            <en>On</en>
+            <de>An</de>
+            <fr>Activé</fr>
+        </text>
+        <text name="homeSpots_detailLog">
+            <en>Detailed log</en>
+            <de>Ausführliches Protokoll</de>
+            <fr>Journal détaillé</fr>
+        </text>
+        <text name="homeSpots_detailLog_tooltip">
+            <en>Write what the shed finder found out about each shed and machine to log.txt. Turn it on before you send in a log about a shed problem. Saved with this savegame.</en>
+            <de>Schreibt, was die Schuppensuche über jeden Schuppen und jede Maschine herausgefunden hat, in die log.txt. Vor dem Einsenden eines Protokolls zu einem Schuppenproblem einschalten. Wird mit diesem Spielstand gespeichert.</de>
+            <fr>Écrit dans log.txt ce que la recherche de hangar a trouvé sur chaque hangar et chaque machine. À activer avant d'envoyer un journal au sujet d'un problème de hangar. Enregistré avec cette partie.</fr>
         </text>
         <text name="homeSpots_fee">
             <en>Realism fee</en>

@@ -24,7 +24,9 @@ function HomeSpotArea.new(size, x, z, dirX, dirZ, sideX, sideZ)
         sideX = sideX,
         sideZ = sideZ,
         halfLength = size.length * 0.5,
-        halfWidth = size.width * 0.5
+        halfWidth = size.width * 0.5,
+        -- Radius of the circle around the footprint, to rule out a far off footprint without the full test
+        radius = math.sqrt((size.length * 0.5) ^ 2 + (size.width * 0.5) ^ 2)
     }
 end
 
@@ -68,27 +70,34 @@ local function getProjectedRadius(area, axisX, axisZ)
 end
 
 
+---Returns true if two footprints are apart along an axis, to within the tolerance
+-- @param table a footprint
+-- @param table b footprint
+-- @param float dx, dz from the centre of a to the centre of b
+-- @param float axisX, axisZ unit axis
+-- @return boolean isApart
+local function getIsApartAlong(a, b, dx, dz, axisX, axisZ)
+    local reach = getProjectedRadius(a, axisX, axisZ) + getProjectedRadius(b, axisX, axisZ)
+
+    return math.abs(dx * axisX + dz * axisZ) >= reach - HomeSpotArea.TOLERANCE
+end
+
+
 ---Returns true if two footprints overlap by more than the tolerance (separating axis test)
 -- @param table a footprint
 -- @param table b footprint
 -- @return boolean overlaps
 function HomeSpotArea.getOverlaps(a, b)
     local dx, dz = b.x - a.x, b.z - a.z
-    local axes = {
-        {a.dirX, a.dirZ}, {a.sideX, a.sideZ},
-        {b.dirX, b.dirZ}, {b.sideX, b.sideZ}
-    }
 
-    for _, axis in ipairs(axes) do
-        local distance = math.abs(dx * axis[1] + dz * axis[2])
-        local reach = getProjectedRadius(a, axis[1], axis[2]) + getProjectedRadius(b, axis[1], axis[2])
-
-        if distance >= reach - HomeSpotArea.TOLERANCE then
-            return false
-        end
+    -- Footprints whose circles do not touch cannot overlap, and most footprints in a busy shed are that far off
+    local reachAll = (a.radius or math.sqrt(a.halfLength ^ 2 + a.halfWidth ^ 2)) + (b.radius or math.sqrt(b.halfLength ^ 2 + b.halfWidth ^ 2))
+    if dx * dx + dz * dz >= reachAll * reachAll then
+        return false
     end
 
-    return true
+    return not (getIsApartAlong(a, b, dx, dz, a.dirX, a.dirZ) or getIsApartAlong(a, b, dx, dz, a.sideX, a.sideZ)
+        or getIsApartAlong(a, b, dx, dz, b.dirX, b.dirZ) or getIsApartAlong(a, b, dx, dz, b.sideX, b.sideZ))
 end
 
 

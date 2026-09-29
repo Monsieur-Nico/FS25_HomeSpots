@@ -205,6 +205,16 @@ return function(test, assertEquals, network)
         network.deliver()
     end)
 
+    test("multiplayer: the detailed log setting reaches every player", function()
+        hostMod.changeSettings({detailLog = HomeSpotStore.LOG_ON})
+        network.deliver()
+        assertEquals(playerMod.store.detailLog, HomeSpotStore.LOG_ON, "player gets the setting")
+
+        hostMod.changeSettings({detailLog = HomeSpotStore.LOG_OFF})
+        network.deliver()
+        assertEquals(playerMod.store.detailLog, HomeSpotStore.LOG_OFF, "and its change")
+    end)
+
     test("multiplayer: the daily send-home moves every farm's vehicles and tells everyone", function()
         playerGame.fireHourChanged(19)
         assertEquals(playerGame.lastNotification(), "soon 20:00", "heads-up for the player")

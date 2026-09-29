@@ -1,4 +1,4 @@
----Adds the Home Spots section to the in-game settings page: the daily send-home time, how map markers show and the realism fee
+---Adds the Home Spots section to the in-game settings page: the daily send-home time, how map markers show, the realism fee and the detailed log
 HomeSpotSettings = {}
 HomeSpotSettings.injectedLayout = nil
 
@@ -94,6 +94,19 @@ HomeSpotSettings.OPTIONS = {
         end,
         setState = function(state)
             HomeSpots.changeSettings({feeLevel = state})
+        end
+    },
+    {
+        textName = "homeSpots_detailLog",
+        tooltipName = "homeSpots_detailLog_tooltip",
+        getTexts = function()
+            return {g_i18n:getText("homeSpots_off"), g_i18n:getText("homeSpots_on")}
+        end,
+        getState = function()
+            return HomeSpots.store.detailLog
+        end,
+        setState = function(state)
+            HomeSpots.changeSettings({detailLog = state})
         end
     }
 }

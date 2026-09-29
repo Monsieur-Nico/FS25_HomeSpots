@@ -21,8 +21,12 @@ HomeSpotStore.FEE_LOW = 2
 HomeSpotStore.FEE_NORMAL = 3
 HomeSpotStore.FEE_HIGH = 4
 
+-- Whether the shed finder writes what it found out about each shed and machine to log.txt
+HomeSpotStore.LOG_OFF = 1
+HomeSpotStore.LOG_ON = 2
+
 -- The settings, as named in the store and in HomeSpots.changeSettings
-HomeSpotStore.SETTING_NAMES = {"autoTidyHour", "markerMode", "feeLevel"}
+HomeSpotStore.SETTING_NAMES = {"autoTidyHour", "markerMode", "feeLevel", "detailLog"}
 
 
 ---Parse three space separated numbers, e.g. "12.5 80.1 -3.2"
@@ -64,11 +68,12 @@ function HomeSpotStore:reset()
     self.autoTidyHour = HomeSpotStore.AUTO_TIDY_OFF
     self.markerMode = HomeSpotStore.MARKERS_AWAY
     self.feeLevel = HomeSpotStore.FEE_OFF
+    self.detailLog = HomeSpotStore.LOG_OFF
 end
 
 
 ---Returns a copy of the settings
--- @return table settings autoTidyHour, markerMode, feeLevel
+-- @return table settings autoTidyHour, markerMode, feeLevel, detailLog
 function HomeSpotStore:getSettings()
     local settings = {}
     for _, name in ipairs(HomeSpotStore.SETTING_NAMES) do
@@ -80,7 +85,7 @@ end
 
 
 ---Use new settings
--- @param table settings autoTidyHour, markerMode, feeLevel
+-- @param table settings autoTidyHour, markerMode, feeLevel, detailLog
 function HomeSpotStore:setSettings(settings)
     for _, name in ipairs(HomeSpotStore.SETTING_NAMES) do
         self[name] = settings[name]
@@ -233,6 +238,10 @@ function HomeSpotStore:loadFromDirectory(directory)
         self.feeLevel = feeLevel
     end
 
+    if getXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#detailLog") == HomeSpotStore.LOG_ON then
+        self.detailLog = HomeSpotStore.LOG_ON
+    end
+
     local i = 0
     while true do
         local key = string.format("%s.vehicle(%d)", HomeSpotStore.XML_ROOT, i)
@@ -284,6 +293,7 @@ function HomeSpotStore:saveToDirectory(directory, vehicleSystem)
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#autoTidyHour", self.autoTidyHour)
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#markers", self.markerMode)
     setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#fee", self.feeLevel)
+    setXMLInt(xmlFile, HomeSpotStore.XML_ROOT .. "#detailLog", self.detailLog)
 
     local i = 0
     for uniqueId, components in pairs(self.spots) do
