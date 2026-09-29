@@ -6,6 +6,19 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 
 ## [Unreleased]
 
+## [1.7.1.0] - 2026-09-29
+
+### Added
+- A "Detailed log" setting under Home Spots. When it is on, the shed finder writes the rooms, the machines in them
+  and why each place along the front line was turned down to `log.txt`. Turn it on before sending in a log about a shed problem.
+
+### Changed
+- The shed finder writes one line per machine unless the detailed log is on.
+- The shed search is up to three times faster in big sheds, and gives up after 30,000 places tried for one machine.
+  Places and layouts are the same as before.
+- The scripts are split into smaller files, one per job (`HomeSpotShed*.lua`, `HomeSpotSend.lua`, `HomeSpotInput.lua` and
+  others), with no change in behaviour.
+
 ## [1.7.0.0] - 2026-09-29
 
 ### Added
@@ -142,7 +155,8 @@ Farming Simulator scheme `major.minor.patch.build`, matching `<version>` in `mod
 ### Added
 - Save a home spot for a vehicle and its attached tools, and send every vehicle and tool home with one key.
 
-[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.7.0.0...HEAD
+[Unreleased]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.7.1.0...HEAD
+[1.7.1.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.7.0.0...v1.7.1.0
 [1.7.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.6.0.0...v1.7.0.0
 [1.6.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.5.0.0...v1.6.0.0
 [1.5.0.0]: https://github.com/Monsieur-Nico/FS25_HomeSpots/compare/v1.4.0.0...v1.5.0.0

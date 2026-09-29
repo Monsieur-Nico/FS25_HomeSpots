@@ -76,8 +76,10 @@ Open **Settings** from the pause menu and scroll to the bottom of the General pa
   scaled by the economic difficulty like worker wages and booked as wages. Tools hooked to a vehicle that goes home
   ride along for free. If your farm can't pay, the vehicle stays put and you're told the price; the daily tidy-up
   always goes ahead. Normal is about what a base-game worker earns driving the same way home.
+- **Detailed log**: Off (default) or On. When it is on, the shed finder writes what it found out about each shed and
+  machine to `log.txt`. Turn it on before you send in a log about a shed problem.
 
-All three are saved with the savegame.
+All four are saved with the savegame.
 
 ## Compatibility
 
@@ -99,7 +101,7 @@ The repository root is the mod folder. See [CONTRIBUTING.md](CONTRIBUTING.md) fo
 release steps.
 
 ```
-scripts/        Mod source (one class per file)
+scripts/        Mod source (one class per topic, big ones split over several files)
 tests/          Tests that run the mod against stand-ins for the game
 tools/build.sh  Packages the mod into dist/FS25_HomeSpots.zip
 modDesc.xml     Mod description, key bindings and translations

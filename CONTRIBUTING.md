@@ -33,9 +33,11 @@ otherwise a test can pass while the mod fails in game.
 
 ### Code style
 
-- Lua 5.1, 4 spaces, one class per file in `scripts/`, each function with a `---` doc comment.
-- Anything that runs every frame or from a game hook goes through `HomeSpots.runSafely`,
-  so a mistake is logged once instead of breaking the game.
+- Lua 5.1, 4 spaces, each function with a `---` doc comment.
+- One class per topic in `scripts/`. A class that grows past about 350 lines is split over several files that add
+  to the same table (`HomeSpotShed*.lua`, `HomeSpotSend.lua` and the other `HomeSpots` files); the first file
+  creates the table and its constants, and `modDesc.xml` lists every file in load order. The tests check that list.
+- No `pcall` or `xpcall`: the GIANTS TestRunner rejects them.
 - Player-facing text lives in the `<l10n>` section of `modDesc.xml` in English, German and French.
 
 ### Commit messages
